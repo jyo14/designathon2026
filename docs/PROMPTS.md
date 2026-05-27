@@ -3,8 +3,8 @@
 This file documents every prompt sent to Gemini API in production. It also tracks prompt iterations — the failed versions matter for Page 4 (where AI helped) and Page 5 (where I overruled AI).
 
 ## Model
-Google Gemini 2.0 Flash via @google/genai SDK.
-Reason: free tier, generous rate limits, structured JSON output supported.
+Groq (llama-3.3-70b-versatile) via groq-sdk.
+Reason: Gemini 2.5 Flash free tier limited to 20 req/day — insufficient for prototype usage.
 
 ## Active prompts
 

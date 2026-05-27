@@ -1,8 +1,9 @@
-import { getGeminiClient } from '@/lib/gemini';
+import { getGroqClient } from '@/lib/llm';
 import { withRetry } from '@/lib/retry';
 import type { Capture, MissingCaseStudy, PortfolioGapResult, StaleCaseStudy } from '@/lib/types';
 
-const PROMPT_TEMPLATE = `You are a portfolio gap analyst for a designer's personal knowledge system. You do NOT write any portfolio prose. Ever.
+// Prompt 3 — logged in /docs/PROMPTS.md
+const SYSTEM_PROMPT = `You are a portfolio gap analyst for a designer's personal knowledge system. You do NOT write any portfolio prose. Ever.
 
 --- CRITICAL DISTINCTION — Read carefully before analyzing ---
 - Captures with label "Portfolio Notes" or "Design Decisions" are about the USER'S OWN work. These are the strongest signals for missing portfolio pieces.
@@ -41,12 +42,6 @@ Portfolio title matching:
 - Matching must be EXACT or near-exact. "FUD-V4.0" and "FAB Learning" / "Family and Business Learning" are completely different projects — do NOT match them.
 - If a capture's project_hint does not clearly correspond to a portfolio title (same name or obvious abbreviation of the same name), treat that capture as belonging to an UNLISTED project, not an existing portfolio item.
 - When in doubt, treat them as different projects.
-
-Portfolio titles:
-{PORTFOLIO_TITLES}
-
-Captures:
-{CAPTURES}
 
 Return ONLY a valid JSON object with this exact shape:
 {
@@ -94,13 +89,13 @@ export async function POST(request: Request) {
       return Response.json(null, { status: 400 });
     }
 
-    const prompt = PROMPT_TEMPLATE
-      .replace('{PORTFOLIO_TITLES}', portfolio_titles.length > 0
-        ? portfolio_titles.map((t, i) => `${i + 1}. ${t}`).join('\n')
-        : '(none — identify what the user should document based on their own work captures)')
-      .replace('{CAPTURES}', captures.map(formatCapture).join('\n'));
+    const portfolioSection = portfolio_titles.length > 0
+      ? portfolio_titles.map((t, i) => `${i + 1}. ${t}`).join('\n')
+      : '(none — identify what the user should document based on their own work captures)';
 
-    const ai = getGeminiClient();
+    const userMessage = `Portfolio titles:\n${portfolioSection}\n\nCaptures:\n${captures.map(formatCapture).join('\n')}`;
+
+    const groq = getGroqClient();
 
     let attemptNum = 0;
 
@@ -108,16 +103,18 @@ export async function POST(request: Request) {
       attemptNum++;
       console.log(`[/api/portfolio-gap] Attempt ${attemptNum}`);
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          temperature: 0.3,
-        },
+      const response = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userMessage },
+        ],
       });
 
-      const text = response.text;
-      if (!text) throw new Error('empty Gemini response');
+      const text = response.choices[0]?.message?.content;
+      if (!text) throw new Error('empty Groq response');
 
       const parsed = JSON.parse(stripFences(text)) as unknown;
       return validateResult(parsed);

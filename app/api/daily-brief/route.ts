@@ -1,5 +1,4 @@
-import { Type } from '@google/genai';
-import { getGeminiClient } from '@/lib/gemini';
+import { getGroqClient } from '@/lib/llm';
 import { withRetry } from '@/lib/retry';
 import type { Capture, DailyBrief } from '@/lib/types';
 
@@ -19,18 +18,9 @@ function formatCapture(c: Capture): string {
 }
 
 // Prompt 2 — logged in /docs/PROMPTS.md
-const PROMPT_TEMPLATE = `You are the daily brief engine for Wick, a designer's personal knowledge capture system.
+const SYSTEM_PROMPT = `You are the daily brief engine for Wick, a designer's personal knowledge capture system.
 
 Your job is to surface what matters most from the designer's saved material — not from calendars, not from inboxes. Only from their captures.
-
---- CAPTURED MATERIAL (LAST 7 DAYS) ---
-{RECENT_CAPTURES}
-
---- ACTIVE PROJECTS ---
-{ACTIVE_PROJECTS}
-
---- STALLED CAPTURES (SAVED OVER 5 DAYS AGO, NEVER OPENED) ---
-{STALLED_CAPTURES}
 
 --- INSTRUCTIONS ---
 Produce a daily brief with exactly three parts:
@@ -76,6 +66,23 @@ Rules:
 
 Return valid JSON only. No markdown fences, no prose outside the JSON.`;
 
+function buildUserMessage(
+  recentCaptures: Capture[],
+  activeProjects: string[],
+  stalledCaptures: Capture[]
+): string {
+  return [
+    '--- CAPTURED MATERIAL (LAST 7 DAYS) ---',
+    recentCaptures.length > 0 ? recentCaptures.map(formatCapture).join('\n') : '(none in the last 7 days)',
+    '',
+    '--- ACTIVE PROJECTS ---',
+    activeProjects.length > 0 ? activeProjects.join(', ') : '(no linked projects yet)',
+    '',
+    '--- STALLED CAPTURES (SAVED OVER 5 DAYS AGO, NEVER OPENED) ---',
+    stalledCaptures.length > 0 ? stalledCaptures.map(formatCapture).join('\n') : '(none)',
+  ].join('\n');
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json() as { captures: Capture[] };
@@ -86,74 +93,31 @@ export async function POST(request: Request) {
     }
 
     const now = Date.now();
-    const sevenDaysAgo = now - MS_7_DAYS;
-    const fiveDaysAgo = now - MS_5_DAYS;
-
     const recentCaptures = captures.filter(
-      (c) => new Date(c.captured_at).getTime() >= sevenDaysAgo
+      (c) => new Date(c.captured_at).getTime() >= now - MS_7_DAYS
     );
     const activeProjects = [
       ...new Set(captures.map((c) => c.project_link).filter((p): p is string => !!p)),
     ];
     const stalledCaptures = captures.filter(
-      (c) => !c.is_opened && new Date(c.captured_at).getTime() <= fiveDaysAgo
+      (c) => !c.is_opened && new Date(c.captured_at).getTime() <= now - MS_5_DAYS
     );
 
-    const prompt = PROMPT_TEMPLATE
-      .replace('{RECENT_CAPTURES}', recentCaptures.length > 0
-        ? recentCaptures.map(formatCapture).join('\n')
-        : '(none in the last 7 days)')
-      .replace('{ACTIVE_PROJECTS}', activeProjects.length > 0
-        ? activeProjects.join(', ')
-        : '(no linked projects yet)')
-      .replace('{STALLED_CAPTURES}', stalledCaptures.length > 0
-        ? stalledCaptures.map(formatCapture).join('\n')
-        : '(none)');
-
-    const ai = getGeminiClient();
+    const groq = getGroqClient();
 
     const result = await withRetry(async () => {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          temperature: 0.3,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              top_3: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    title: { type: Type.STRING },
-                    reasoning: { type: Type.STRING },
-                    capture_ids: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  },
-                  required: ['title', 'reasoning', 'capture_ids'],
-                },
-              },
-              connections: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    description: { type: Type.STRING },
-                    capture_ids: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  },
-                  required: ['description', 'capture_ids'],
-                },
-              },
-              nudge: { type: Type.STRING },
-            },
-            required: ['top_3', 'connections', 'nudge'],
-          },
-        },
+      const response = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: buildUserMessage(recentCaptures, activeProjects, stalledCaptures) },
+        ],
       });
 
-      const text = response.text;
-      if (!text) throw new Error('empty Gemini response');
+      const text = response.choices[0]?.message?.content;
+      if (!text) throw new Error('empty Groq response');
 
       return JSON.parse(text) as Omit<DailyBrief, 'generated_at'>;
     });

@@ -1,5 +1,4 @@
-import { Type } from '@google/genai';
-import { getGeminiClient } from '@/lib/gemini';
+import { getGroqClient } from '@/lib/llm';
 import { withRetry } from '@/lib/retry';
 import type { CaptureLabel } from '@/lib/types';
 
@@ -13,13 +12,9 @@ const VALID_LABELS: CaptureLabel[] = [
 ];
 
 // Prompt 1 — logged in /docs/PROMPTS.md
-const PROMPT_TEMPLATE = `You are a categorization assistant for Wick, a designer's personal knowledge capture system.
+const SYSTEM_PROMPT = `You are a categorization assistant for Wick, a designer's personal knowledge capture system.
 
 A designer has saved the following content. Classify it with a label, a short summary, and 2–4 theme tags.
-
---- CONTENT ---
-{CONTENT}
-{SOURCE_LINE}
 
 --- LABEL DEFINITIONS (pick exactly one) ---
 - UI Pattern: A complete UI design, component, interaction pattern, screen, or flow worth referencing for how something is built or designed. Includes Figma links, Behance/Dribbble designs, component libraries, full app screen references.
@@ -39,17 +34,9 @@ A designer has saved the following content. Classify it with a label, a short su
 
 Return valid JSON only. No markdown fences, no prose outside the JSON object.`;
 
-function buildPrompt(content: string, sourceUrl?: string): string {
-  const sourceLine = sourceUrl ? `--- SOURCE URL ---\n${sourceUrl}` : '';
-  return PROMPT_TEMPLATE
-    .replace('{CONTENT}', content || '(no text content — classify based on image if provided)')
-    .replace('{SOURCE_LINE}', sourceLine);
-}
-
-function parseDataUrl(dataUrl: string): { mimeType: string; data: string } | null {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match) return null;
-  return { mimeType: match[1], data: match[2] };
+function buildUserMessage(content: string, sourceUrl?: string): string {
+  const sourceLine = sourceUrl ? `\n--- SOURCE URL ---\n${sourceUrl}` : '';
+  return `--- CONTENT ---\n${content || '(no text content)'}${sourceLine}`;
 }
 
 export async function POST(request: Request) {
@@ -60,55 +47,23 @@ export async function POST(request: Request) {
       image_data_url?: string;
     };
 
-    const { content = '', source_url, image_data_url } = body;
+    const { content = '', source_url } = body;
 
-    const ai = getGeminiClient();
-
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-      { text: buildPrompt(content, source_url) },
-    ];
-
-    if (image_data_url) {
-      const parsed = parseDataUrl(image_data_url);
-      if (parsed) parts.push({ inlineData: parsed });
-    }
+    const groq = getGroqClient();
 
     const result = await withRetry(async () => {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts }],
-        config: {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              label: {
-                type: Type.STRING,
-                enum: VALID_LABELS,
-                description: 'One of the 6 valid designer-aware labels',
-              },
-              summary: {
-                type: Type.STRING,
-                description: '1–2 specific sentences about what this is and why a designer cares',
-              },
-              themes: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: '2–4 short hyphenated UX/design theme tags',
-              },
-              project_hint: {
-                type: Type.STRING,
-                description: 'Project name if explicitly mentioned in content; omit otherwise',
-              },
-            },
-            required: ['label', 'summary', 'themes'],
-          },
-        },
+      const response = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: buildUserMessage(content, source_url) },
+        ],
       });
 
-      const text = response.text;
-      if (!text) throw new Error('empty Gemini response');
+      const text = response.choices[0]?.message?.content;
+      if (!text) throw new Error('empty Groq response');
 
       return JSON.parse(text) as {
         label: string;
