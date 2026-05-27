@@ -39,7 +39,7 @@ This is the contrarian position the product is built around. It must be visible 
 - Next.js 14+ (App Router, TypeScript)
 - Tailwind CSS
 - localStorage for persistence (single-user prototype)
-- Google Gemini API (gemini-2.0-flash)
+- Groq API (llama-3.3-70b-versatile)
 - Vercel for deployment
 
 ## Out of scope for the 4.5-day prototype

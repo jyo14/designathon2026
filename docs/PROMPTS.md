@@ -69,7 +69,7 @@ Return valid JSON only. No markdown fences, no prose outside the JSON object.
 ### Prompt 2: Daily Brief Generation
 **Used in:** `/api/daily-brief`
 **Purpose:** Generate today's top 3, 2 connections, 1 nudge from recent captures and active projects.
-**Model:** `gemini-2.5-flash` (newer than categorize — more reasoning required)
+**Model:** `llama-3.3-70b-versatile` via Groq
 **Structured output:** `responseMimeType: "application/json"` + `responseSchema` with nested `Type.OBJECT` in arrays
 
 **Prompt text (v1):**
@@ -183,7 +183,7 @@ Return valid JSON only. No markdown fences, no prose outside the JSON.
 **Used in:** `/api/portfolio-gap`
 **Purpose:** Given the user's portfolio titles + all captures, identify missing case studies and stale ones.
 **Note:** Feature 3 was pivoted from case study template mapping (single project) to portfolio gap awareness (full portfolio vs. all captures). The pivot surfaces more actionable gaps across the whole body of work rather than mapping a single project.
-**Model:** `gemini-2.5-flash` (same as Prompt 2 — reasoning required for cross-portfolio synthesis)
+**Model:** `llama-3.3-70b-versatile` via Groq
 **Output:** Free-form JSON parsed manually (no `responseSchema` — see v2 iteration note)
 
 **Prompt text (v2 — active):**

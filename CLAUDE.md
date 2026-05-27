@@ -20,8 +20,8 @@ Wick is a 4.5-day designathon prototype: a personal capture-and-structure system
 - Next.js 14+ (App Router, TypeScript)
 - Tailwind CSS v4
 - localStorage for all persistence (single-user prototype)
-- Google Gemini API (gemini-2.0-flash) via @google/genai SDK
-- Environment variable: `GEMINI_API_KEY` in .env.local
+- Groq API (llama-3.3-70b-versatile) via groq-sdk
+- Environment variable: `GROQ_API_KEY` in .env.local
 - Vercel for deployment (when ready)
 
 ## Build philosophy
