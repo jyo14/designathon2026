@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/categorize/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/daily-brief/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/portfolio-gap/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}

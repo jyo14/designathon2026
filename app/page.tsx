@@ -285,13 +285,14 @@ function CaptureCard({
           href={capture.source_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs font-mono text-text-tertiary hover:text-accent truncate block"
+          className="text-xs font-mono text-accent hover:opacity-75 truncate block transition-opacity"
           onClick={(e) => {
             e.stopPropagation();
             if (!capture.is_opened) onMarkOpened(capture.id);
           }}
         >
-          ↗ {capture.source_url.replace(/^https?:\/\//, '')}
+          ↗ {capture.source_url.replace(/^https?:\/\//, '').slice(0, 50) +
+             (capture.source_url.replace(/^https?:\/\//, '').length > 50 ? '…' : '')}
         </a>
       )}
     </article>
