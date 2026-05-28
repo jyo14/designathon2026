@@ -285,14 +285,13 @@ function CaptureCard({
           href={capture.source_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs font-mono text-accent hover:opacity-75 truncate block transition-opacity"
+          className="text-accent hover:underline text-sm truncate block max-w-full"
           onClick={(e) => {
             e.stopPropagation();
             if (!capture.is_opened) onMarkOpened(capture.id);
           }}
         >
-          ↗ {capture.source_url.replace(/^https?:\/\//, '').slice(0, 50) +
-             (capture.source_url.replace(/^https?:\/\//, '').length > 50 ? '…' : '')}
+          {capture.source_url}
         </a>
       )}
     </article>
