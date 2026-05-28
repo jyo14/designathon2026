@@ -65,12 +65,24 @@ export async function POST(request: Request) {
       const text = response.choices[0]?.message?.content;
       if (!text) throw new Error('empty Groq response');
 
-      return JSON.parse(text) as {
+      const parsed = JSON.parse(text) as {
         label: string;
         summary: string;
-        themes: string[];
+        themes: unknown;
         project_hint?: string;
       };
+
+      // Normalize themes to string[]
+      let themes: string[];
+      if (Array.isArray(parsed.themes)) {
+        themes = (parsed.themes as unknown[]).map(String);
+      } else if (typeof parsed.themes === 'string' && parsed.themes) {
+        themes = parsed.themes.split(',').map((t) => t.trim()).filter(Boolean);
+      } else {
+        themes = [];
+      }
+
+      return { ...parsed, themes };
     });
 
     if (!VALID_LABELS.includes(result.label as CaptureLabel)) {

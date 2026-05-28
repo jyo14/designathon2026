@@ -270,7 +270,7 @@ function CaptureCard({
         <p className="text-sm text-text-secondary leading-relaxed">{previewText}</p>
       )}
 
-      {capture.themes && capture.themes.length > 0 && (
+      {Array.isArray(capture.themes) && capture.themes.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {capture.themes.map((t) => (
             <span key={t} className="text-xs font-mono px-2 py-0.5 rounded-full bg-surface-2 text-text-secondary">

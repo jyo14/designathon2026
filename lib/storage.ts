@@ -15,10 +15,23 @@ function writeAll(captures: Capture[]): void {
   localStorage.setItem(KEY, JSON.stringify(captures));
 }
 
+function normalizeCapture(c: Capture): Capture {
+  // themes can arrive as a string or null from old/malformed data
+  let themes: string[] | undefined;
+  if (Array.isArray(c.themes)) {
+    themes = c.themes;
+  } else if (typeof c.themes === 'string' && c.themes) {
+    themes = (c.themes as string).split(',').map((t) => t.trim()).filter(Boolean);
+  } else {
+    themes = undefined;
+  }
+  return { ...c, themes };
+}
+
 export function getCaptures(): Capture[] {
-  return readAll().sort(
-    (a, b) => new Date(b.captured_at).getTime() - new Date(a.captured_at).getTime()
-  );
+  return readAll()
+    .map(normalizeCapture)
+    .sort((a, b) => new Date(b.captured_at).getTime() - new Date(a.captured_at).getTime());
 }
 
 export function getCaptureById(id: string): Capture | undefined {
