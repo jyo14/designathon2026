@@ -286,10 +286,7 @@ function CaptureCard({
           target="_blank"
           rel="noopener noreferrer"
           className="text-accent hover:underline text-sm truncate block max-w-full"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!capture.is_opened) onMarkOpened(capture.id);
-          }}
+          onClick={(e) => e.stopPropagation()}
         >
           {capture.source_url}
         </a>
