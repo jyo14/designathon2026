@@ -15,27 +15,29 @@
 
 ## Color tokens
 
+Reference direction: NotaAI, Tempo, Writeup, PandaDoc dashboards — bold saturated accent on a cool-grey ground, white surfaces that pop.
+
 ```css
 /* Backgrounds */
---bg: #F8F7F4;              /* warm off-white — body background */
---surface: #FFFFFF;         /* card surfaces */
---surface-2: #F2F1ED;       /* subtle differentiation, chip backgrounds */
---surface-hover: #ECEAE5;   /* hover state for surface-2 elements */
+--bg: #EDEDF2;              /* cool light grey — surfaces pop against this */
+--surface: #FFFFFF;         /* card and panel surfaces */
+--surface-2: #F5F5F8;       /* subtle differentiation, chip backgrounds */
+--surface-hover: #EAEAEF;   /* hover state for rows and chips */
 
 /* Text */
---text-primary: #141413;
---text-secondary: #5C5B55;
---text-tertiary: #9C9B95;
+--text-primary: #111115;
+--text-secondary: #5C5B6E;
+--text-tertiary: #9494A6;
 
-/* Accent (deep forest green) */
---accent: #1B4D3E;
---accent-hover: #163D31;
---accent-soft: #E3EDE9;     /* badge backgrounds, focus rings */
+/* Accent (vibrant indigo — inspired by NotaAI/Writeup references) */
+--accent: #4F46E5;
+--accent-hover: #4338CA;
+--accent-soft: #EEF2FF;     /* badge backgrounds, focus rings */
 --accent-foreground: #FFFFFF;
 
 /* Structure */
---border: #E8E7E3;
---divider: #F0EFE9;
+--border: #E4E4EC;
+--divider: #EBEBF0;
 
 /* Shadows */
 --shadow-sm: 0 1px 3px rgba(20,20,19,0.06), 0 1px 2px rgba(20,20,19,0.04);

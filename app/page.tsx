@@ -29,6 +29,7 @@ const ALL_LABELS: CaptureLabel[] = [
 ];
 
 type CatState = 'pending' | 'error';
+type ListPosition = 'only' | 'first' | 'middle' | 'last';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,8 @@ function CaptureCard({
   onMarkOpened,
   onLabelChange,
   showLabel = false,
+  inList = false,
+  listPosition = 'only',
 }: {
   capture: Capture;
   catState?: CatState;
@@ -132,6 +135,8 @@ function CaptureCard({
   onMarkOpened: (id: string) => void;
   onLabelChange?: (id: string, newLabel: CaptureLabel) => void;
   showLabel?: boolean;
+  inList?: boolean;
+  listPosition?: ListPosition;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [labelMenuOpen, setLabelMenuOpen] = useState(false);
@@ -148,15 +153,26 @@ function CaptureCard({
     ? contentText
     : contentText.slice(0, 240) + (contentText.length > 240 ? '…' : '');
 
-  const ringClass = highlighted
-    ? 'ring-2 ring-accent ring-offset-1'
-    : '';
+  // Radius for row items inside a panel (no overflow-hidden on parent, so we radius each item)
+  const rowRadius =
+    listPosition === 'only' ? 'rounded-[12px]' :
+    listPosition === 'first' ? 'rounded-t-[12px]' :
+    listPosition === 'last'  ? 'rounded-b-[12px]' :
+    '';
+
+  const articleClass = inList
+    ? `px-4 py-3.5 flex flex-col gap-3 cursor-pointer group transition-colors duration-150
+       ${rowRadius}
+       ${listPosition !== 'last' && listPosition !== 'only' ? 'border-b border-divider' : ''}
+       ${highlighted ? 'bg-accent-soft' : 'hover:bg-surface-hover'}`
+    : `bg-surface border border-border rounded-[12px] px-4 py-3.5 flex flex-col gap-3
+       cursor-pointer group transition-all duration-150 hover:shadow-sm
+       ${highlighted ? 'ring-2 ring-accent ring-offset-1' : ''}`;
 
   return (
     <article
       data-capture-id={capture.id}
-      className={`bg-surface border border-border rounded-[12px] px-4 py-3.5 flex flex-col gap-3
-        cursor-pointer group transition-all duration-150 hover:shadow-sm ${ringClass}`}
+      className={articleClass}
       onClick={handleCardClick}
     >
       {/* Top row */}
@@ -185,10 +201,7 @@ function CaptureCard({
               </div>
               {labelMenuOpen && (
                 <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setLabelMenuOpen(false)}
-                  />
+                  <div className="fixed inset-0 z-10" onClick={() => setLabelMenuOpen(false)} />
                   <div className="absolute top-full left-0 mt-1 z-20 bg-surface border border-border
                                   rounded-[10px] shadow-md py-1 min-w-[200px]">
                     {ALL_LABELS.map((l) => (
@@ -202,10 +215,7 @@ function CaptureCard({
                                     flex items-center gap-2 transition-colors
                                     ${l === capture.label ? 'text-accent font-medium' : 'text-text-primary'}`}
                       >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          style={{ background: LABEL_STYLES[l].dot }}
-                        />
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: LABEL_STYLES[l].dot }} />
                         {l}
                       </button>
                     ))}
@@ -248,12 +258,8 @@ function CaptureCard({
       {capture.image_data_url && (
         <div className={`rounded-[8px] overflow-hidden border border-border bg-surface-2 ${expanded ? '' : 'max-h-36'}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={capture.image_data_url}
-            alt="Captured"
-            className="w-full object-cover"
-            style={{ maxHeight: expanded ? 'none' : '9rem' }}
-          />
+          <img src={capture.image_data_url} alt="Captured" className="w-full object-cover"
+            style={{ maxHeight: expanded ? 'none' : '9rem' }} />
         </div>
       )}
 
@@ -270,7 +276,8 @@ function CaptureCard({
       {Array.isArray(capture.themes) && capture.themes.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {capture.themes.map((t) => (
-            <span key={t} className="font-mono px-2 py-0.5 rounded-full bg-surface-2 text-text-secondary" style={{ fontSize: '11px' }}>
+            <span key={t} className="font-mono px-2 py-0.5 rounded-full bg-surface-2 text-text-secondary"
+              style={{ fontSize: '11px' }}>
               {t}
             </span>
           ))}
@@ -296,27 +303,31 @@ function DeleteButton({ captureId, onDelete }: { captureId: string; onDelete: (i
   const [confirming, setConfirming] = useState(false);
   return confirming ? (
     <>
-      <button
-        onClick={() => onDelete(captureId)}
-        className="text-xs px-2 py-1 rounded-[6px] bg-red-50 text-red-600 hover:bg-red-100 font-medium"
-      >
+      <button onClick={() => onDelete(captureId)}
+        className="text-xs px-2 py-1 rounded-[6px] bg-red-50 text-red-600 hover:bg-red-100 font-medium">
         Delete
       </button>
-      <button
-        onClick={() => setConfirming(false)}
-        className="text-xs px-2 py-1 rounded-[6px] text-text-secondary hover:bg-surface-2"
-      >
+      <button onClick={() => setConfirming(false)}
+        className="text-xs px-2 py-1 rounded-[6px] text-text-secondary hover:bg-surface-2">
         No
       </button>
     </>
   ) : (
-    <button
-      onClick={() => setConfirming(true)}
+    <button onClick={() => setConfirming(true)}
       className="text-xs px-2 py-1 rounded-[6px] text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-colors"
-      aria-label="Delete"
-    >
+      aria-label="Delete">
       ✕
     </button>
+  );
+}
+
+// ─── Capture panel (shared container for lists of cards) ─────────────────────
+
+function CapturePanel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-[12px] border border-border bg-surface">
+      {children}
+    </div>
   );
 }
 
@@ -350,10 +361,17 @@ function LabelBoard({
     }
   }, [highlightedId, captures]);
 
+  function getPosition(i: number): ListPosition {
+    if (captures.length === 1) return 'only';
+    if (i === 0) return 'first';
+    if (i === captures.length - 1) return 'last';
+    return 'middle';
+  }
+
   return (
     <section className="mb-6">
       <button
-        className="w-full flex items-center justify-between py-2 px-1 group"
+        className="w-full flex items-center justify-between py-2 px-1 mb-1 group"
         onClick={() => setCollapsed((c) => !c)}
         aria-expanded={!collapsed}
       >
@@ -361,11 +379,11 @@ function LabelBoard({
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.dot }} />
           <span
             className="font-semibold uppercase tracking-wider text-text-secondary"
-            style={{ fontSize: '13px', letterSpacing: '0.06em' }}
+            style={{ fontSize: '12px', letterSpacing: '0.07em' }}
           >
             {label}
           </span>
-          <span className="font-mono text-text-tertiary" style={{ fontSize: '13px' }}>
+          <span className="font-mono text-text-tertiary" style={{ fontSize: '12px' }}>
             {captures.length}
           </span>
         </div>
@@ -375,8 +393,8 @@ function LabelBoard({
       </button>
 
       {!collapsed && (
-        <div className="flex flex-col gap-3 mt-2">
-          {captures.map((c) => (
+        <CapturePanel>
+          {captures.map((c, i) => (
             <CaptureCard
               key={c.id}
               capture={c}
@@ -387,9 +405,11 @@ function LabelBoard({
               onMarkOpened={onMarkOpened}
               onLabelChange={onLabelChange}
               showLabel={true}
+              inList={true}
+              listPosition={getPosition(i)}
             />
           ))}
-        </div>
+        </CapturePanel>
       )}
     </section>
   );
@@ -493,7 +513,7 @@ function DailyBriefSection({
 
       {/* States */}
       {!hasEnough ? (
-        <div className="py-10 text-center rounded-[12px] border border-dashed border-border">
+        <div className="py-10 text-center rounded-[12px] border border-dashed border-border bg-surface">
           <p className="text-sm text-text-secondary">
             Save a few more captures and your brief will appear here.
           </p>
@@ -510,9 +530,7 @@ function DailyBriefSection({
         </div>
       ) : genError ? (
         <div className="py-8 text-center rounded-[12px] border border-border bg-surface">
-          <p className="text-sm text-text-secondary mb-3">
-            Couldn&apos;t generate the brief.
-          </p>
+          <p className="text-sm text-text-secondary mb-3">Couldn&apos;t generate the brief.</p>
           <button
             onClick={() => void generate()}
             className="text-xs px-3 py-1.5 rounded-[8px] border border-border text-text-secondary
@@ -522,10 +540,8 @@ function DailyBriefSection({
           </button>
         </div>
       ) : !brief ? (
-        <div className="py-10 text-center rounded-[12px] border border-dashed border-border">
-          <p className="text-sm text-text-secondary mb-4">
-            Ready to surface what matters today.
-          </p>
+        <div className="py-10 text-center rounded-[12px] border border-dashed border-border bg-surface">
+          <p className="text-sm text-text-secondary mb-4">Ready to surface what matters today.</p>
           <button
             onClick={() => void generate()}
             className="text-sm px-5 py-2 rounded-[8px] bg-accent text-white font-semibold
@@ -544,24 +560,13 @@ function DailyBriefSection({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {brief.top_3.map((item, i) => (
                 <div key={i} className="bg-surface border border-border rounded-[12px] p-4 flex flex-col gap-2">
-                  <p className="font-bold text-text-tertiary leading-none" style={{ fontSize: '32px' }}>
-                    {i + 1}
-                  </p>
-                  <p className="font-semibold text-text-primary mt-2 leading-snug" style={{ fontSize: '15px' }}>
-                    {item.title}
-                  </p>
-                  <p className="text-text-secondary flex-1 leading-relaxed" style={{ fontSize: '13px' }}>
-                    {item.reasoning}
-                  </p>
+                  <p className="font-bold text-text-tertiary leading-none" style={{ fontSize: '32px' }}>{i + 1}</p>
+                  <p className="font-semibold text-text-primary mt-2 leading-snug" style={{ fontSize: '15px' }}>{item.title}</p>
+                  <p className="text-text-secondary flex-1 leading-relaxed" style={{ fontSize: '13px' }}>{item.reasoning}</p>
                   {item.capture_ids.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {item.capture_ids.map((id) => (
-                        <CaptureChip
-                          key={id}
-                          captureId={id}
-                          capturesById={capturesById}
-                          onClick={onCaptureLinkClick}
-                        />
+                        <CaptureChip key={id} captureId={id} capturesById={capturesById} onClick={onCaptureLinkClick} />
                       ))}
                     </div>
                   )}
@@ -578,18 +583,11 @@ function DailyBriefSection({
             <div className="flex flex-col gap-3">
               {brief.connections.map((conn, i) => (
                 <div key={i} className="bg-surface border border-border rounded-[12px] p-4 flex flex-col gap-2">
-                  <p className="font-medium text-text-primary leading-relaxed" style={{ fontSize: '14px' }}>
-                    {conn.description}
-                  </p>
+                  <p className="font-medium text-text-primary leading-relaxed" style={{ fontSize: '14px' }}>{conn.description}</p>
                   {conn.capture_ids.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {conn.capture_ids.map((id) => (
-                        <CaptureChip
-                          key={id}
-                          captureId={id}
-                          capturesById={capturesById}
-                          onClick={onCaptureLinkClick}
-                        />
+                        <CaptureChip key={id} captureId={id} capturesById={capturesById} onClick={onCaptureLinkClick} />
                       ))}
                     </div>
                   )}
@@ -636,14 +634,12 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
     setSaving(true);
     let imageDataUrl: string | undefined;
     if (imageFile) imageDataUrl = await readFileAsDataURL(imageFile);
-
     const saved = addCapture({
       type: detectType(content, url, !!imageFile),
       content: content.trim(),
       source_url: url.trim() || undefined,
       image_data_url: imageDataUrl,
     });
-
     onSave(saved);
     setContent('');
     setUrl('');
@@ -683,7 +679,7 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
         <button
           onClick={() => setOpen(true)}
           className="flex items-center justify-center gap-2 w-full px-4 py-3
-                     rounded-[12px] border border-dashed border-border
+                     rounded-[12px] border border-dashed border-border bg-surface
                      text-[14px] text-text-tertiary hover:border-accent hover:text-accent
                      transition-colors duration-150"
         >
@@ -768,7 +764,6 @@ export default function Home() {
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Migrate old label names to new ones
     getCaptures().forEach((c) => {
       const label = c.label as string;
       if (label === 'Case Study Fragment' || label === 'To-Do for Portfolio') {
@@ -785,9 +780,7 @@ export default function Home() {
     setHydrated(true);
   }, []);
 
-  function refresh() {
-    setCaptures(getCaptures());
-  }
+  function refresh() { setCaptures(getCaptures()); }
 
   async function categorize(capture: Capture) {
     setCatStates((prev) => ({ ...prev, [capture.id]: 'pending' }));
@@ -806,7 +799,6 @@ export default function Home() {
         label: string; summary: string; themes: string[]; project_hint?: string;
       } | null;
       if (!data) throw new Error('null response');
-
       updateCapture(capture.id, {
         label: data.label as CaptureLabel,
         summary: data.summary,
@@ -825,30 +817,16 @@ export default function Home() {
     }
   }
 
-  function handleSave(c: Capture) {
-    refresh();
-    void categorize(c);
-  }
+  function handleSave(c: Capture) { refresh(); void categorize(c); }
 
   function handleDelete(id: string) {
     deleteCapture(id);
-    setCatStates((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
+    setCatStates((prev) => { const next = { ...prev }; delete next[id]; return next; });
     refresh();
   }
 
-  function handleMarkOpened(id: string) {
-    updateCapture(id, { is_opened: true });
-    refresh();
-  }
-
-  function handleLabelChange(id: string, newLabel: CaptureLabel) {
-    updateCapture(id, { label: newLabel });
-    refresh();
-  }
+  function handleMarkOpened(id: string) { updateCapture(id, { is_opened: true }); refresh(); }
+  function handleLabelChange(id: string, newLabel: CaptureLabel) { updateCapture(id, { label: newLabel }); refresh(); }
 
   function handleCaptureLinkClick(id: string) {
     handleMarkOpened(id);
@@ -868,8 +846,6 @@ export default function Home() {
     }
     setBackfilling(false);
   }
-
-  // ─── Derived state ───────────────────────────────────────────────────────────
 
   const uncategorized = captures.filter((c) => !c.label);
   const labeled = captures.filter((c) => !!c.label);
@@ -891,35 +867,29 @@ export default function Home() {
   const idleUncategorized = uncategorized.filter((c) => !catStates[c.id]);
   const hasAnything = captures.length > 0;
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
+  function getPosition(i: number, total: number): ListPosition {
+    if (total === 1) return 'only';
+    if (i === 0) return 'first';
+    if (i === total - 1) return 'last';
+    return 'middle';
+  }
 
   return (
     <div className="min-h-screen bg-bg">
-      {/* Sticky header — full width */}
-      <header className="sticky top-0 z-50 w-full bg-surface border-b border-border">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-50 w-full bg-surface border-b border-border shadow-sm">
         <div className="max-w-[720px] mx-auto px-6 h-14 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="font-semibold text-text-primary tracking-tight" style={{ fontSize: '18px' }}>
-              Wick
-            </span>
-            <span
-              className="font-mono px-2.5 py-1 rounded-full bg-accent-soft text-accent"
-              style={{ fontSize: '11px' }}
-            >
+            <span className="font-semibold text-text-primary tracking-tight" style={{ fontSize: '18px' }}>Wick</span>
+            <span className="font-mono px-2.5 py-1 rounded-full bg-accent-soft text-accent" style={{ fontSize: '11px' }}>
               AI structures. You write.
             </span>
           </div>
           <nav className="flex items-center gap-6">
-            <Link
-              href="/"
-              className="text-sm font-semibold text-accent border-b-2 border-accent pb-px"
-            >
+            <Link href="/" className="text-sm font-semibold text-accent border-b-2 border-accent pb-px">
               Brief
             </Link>
-            <Link
-              href="/portfolio"
-              className="text-sm font-medium text-text-secondary hover:text-text-primary border-b-2 border-transparent pb-px transition-colors duration-150"
-            >
+            <Link href="/portfolio" className="text-sm font-medium text-text-secondary hover:text-text-primary border-b-2 border-transparent pb-px transition-colors duration-150">
               Portfolio
             </Link>
           </nav>
@@ -929,35 +899,26 @@ export default function Home() {
       {/* Content */}
       <div className="max-w-[720px] mx-auto px-6 py-8">
 
-        {/* Daily Brief — primary view */}
         {hydrated && (
-          <DailyBriefSection
-            captures={captures}
-            onCaptureLinkClick={handleCaptureLinkClick}
-          />
+          <DailyBriefSection captures={captures} onCaptureLinkClick={handleCaptureLinkClick} />
         )}
 
-        {/* Divider between brief and capture area */}
         <div className="h-px bg-divider mb-8" />
 
-        {/* Capture form */}
         <CaptureForm onSave={handleSave} />
 
         {!hydrated ? null : !hasAnything ? (
-          /* ── Empty state ── */
           <div className="py-16 text-center">
             <p className="text-text-secondary text-sm leading-relaxed">
               Nothing here yet.{' '}
-              <span className="text-text-tertiary">
-                Paste something and we&apos;ll figure out where it goes.
-              </span>
+              <span className="text-text-tertiary">Paste something and we&apos;ll figure out where it goes.</span>
             </p>
           </div>
         ) : (
           <>
-            {/* Backfill button */}
+            {/* Backfill */}
             {idleUncategorized.length > 0 && (
-              <div className="mb-6 flex items-center justify-between py-2.5 px-4 rounded-[10px] bg-surface-2 border border-border">
+              <div className="mb-6 flex items-center justify-between py-2.5 px-4 rounded-[10px] bg-surface border border-border">
                 <span className="text-xs text-text-secondary">
                   {idleUncategorized.length} capture{idleUncategorized.length !== 1 ? 's' : ''} without a label
                 </span>
@@ -976,19 +937,14 @@ export default function Home() {
             {/* Just captured */}
             {uncategorized.length > 0 && (
               <section className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <p
-                    className="font-mono uppercase text-text-tertiary"
-                    style={{ fontSize: '11px', letterSpacing: '0.1em' }}
-                  >
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <p className="font-mono uppercase text-text-tertiary" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
                     Just captured
                   </p>
-                  <span className="font-mono text-text-tertiary" style={{ fontSize: '11px' }}>
-                    {uncategorized.length}
-                  </span>
+                  <span className="font-mono text-text-tertiary" style={{ fontSize: '11px' }}>{uncategorized.length}</span>
                 </div>
-                <div className="flex flex-col gap-3">
-                  {uncategorized.map((c) => (
+                <CapturePanel>
+                  {uncategorized.map((c, i) => (
                     <CaptureCard
                       key={c.id}
                       capture={c}
@@ -998,13 +954,14 @@ export default function Home() {
                       onDelete={handleDelete}
                       onMarkOpened={handleMarkOpened}
                       showLabel={false}
+                      inList={true}
+                      listPosition={getPosition(i, uncategorized.length)}
                     />
                   ))}
-                </div>
+                </CapturePanel>
               </section>
             )}
 
-            {/* Divider */}
             {uncategorized.length > 0 && boards.length > 0 && (
               <div className="h-px bg-divider mb-8" />
             )}
