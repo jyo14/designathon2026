@@ -281,11 +281,11 @@ function CaptureCard({
       )}
 
       {capture.source_url && (
-        <span
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(capture.source_url, '_blank', 'noopener,noreferrer');
-          }}
+        <a
+          href={capture.source_url.startsWith('http') ? capture.source_url : `https://${capture.source_url}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
           style={{
             color: '#2D5F4E',
             textDecoration: 'underline',
@@ -298,7 +298,7 @@ function CaptureCard({
           }}
         >
           {capture.source_url}
-        </span>
+        </a>
       )}
     </article>
   );
