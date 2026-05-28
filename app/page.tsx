@@ -29,7 +29,6 @@ const ALL_LABELS: CaptureLabel[] = [
 ];
 
 type CatState = 'pending' | 'error';
-type ListPosition = 'only' | 'first' | 'middle' | 'last';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -71,6 +70,14 @@ function delay(ms: number) {
   return new Promise<void>((r) => setTimeout(r, ms));
 }
 
+function extractUrl(text: string): { url: string; remaining: string } | null {
+  const match = text.match(/https?:\/\/[^\s<>'"]+/);
+  if (!match) return null;
+  const url = match[0].replace(/[.,;!?)\]]+$/, '');
+  const remaining = text.replace(match[0], '').trim();
+  return { url, remaining };
+}
+
 // ─── Label chip ───────────────────────────────────────────────────────────────
 
 function LabelChip({ label }: { label: CaptureLabel }) {
@@ -92,10 +99,12 @@ function CaptureChip({
   captureId,
   capturesById,
   onClick,
+  dark = false,
 }: {
   captureId: string;
   capturesById: Map<string, Capture>;
   onClick: (id: string) => void;
+  dark?: boolean;
 }) {
   const capture = capturesById.get(captureId);
   if (!capture) return null;
@@ -104,8 +113,11 @@ function CaptureChip({
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(captureId); }}
-      className="text-xs px-2.5 py-1 rounded-[6px] bg-surface-2 text-text-secondary
-                 hover:text-accent transition-colors max-w-[220px] truncate text-left"
+      className={`text-xs px-2.5 py-1 rounded-[6px] max-w-[220px] truncate text-left transition-colors
+                  ${dark
+                    ? 'hover:opacity-100'
+                    : 'bg-surface-2 text-text-secondary hover:text-accent'}`}
+      style={dark ? { background: 'rgba(236,233,224,0.1)', color: 'rgba(236,233,224,0.7)' } : {}}
       title={capture.summary ?? capture.content ?? ''}
     >
       {preview || '(image capture)'}
@@ -114,6 +126,22 @@ function CaptureChip({
 }
 
 // ─── Capture card ─────────────────────────────────────────────────────────────
+
+function getTypeBadgeInfo(capture: Capture): { icon: string; label: string } {
+  if (capture.type === 'image') return { icon: '🖼', label: 'IMAGE' };
+  if (capture.type === 'text') return { icon: '📝', label: 'NOTE' };
+  if (capture.source_url) {
+    try {
+      const hostname = new URL(
+        capture.source_url.startsWith('http') ? capture.source_url : `https://${capture.source_url}`
+      ).hostname.replace('www.', '');
+      return { icon: '🔗', label: hostname };
+    } catch {
+      return { icon: '🔗', label: 'link' };
+    }
+  }
+  return { icon: '📝', label: 'NOTE' };
+}
 
 function CaptureCard({
   capture,
@@ -124,8 +152,6 @@ function CaptureCard({
   onMarkOpened,
   onLabelChange,
   showLabel = false,
-  inList = false,
-  listPosition = 'only',
 }: {
   capture: Capture;
   catState?: CatState;
@@ -135,8 +161,6 @@ function CaptureCard({
   onMarkOpened: (id: string) => void;
   onLabelChange?: (id: string, newLabel: CaptureLabel) => void;
   showLabel?: boolean;
-  inList?: boolean;
-  listPosition?: ListPosition;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [labelMenuOpen, setLabelMenuOpen] = useState(false);
@@ -148,61 +172,36 @@ function CaptureCard({
 
   const isPending = catState === 'pending';
   const isError = catState === 'error';
-  const contentText = capture.content;
-  const previewText = expanded
-    ? contentText
-    : contentText.slice(0, 240) + (contentText.length > 240 ? '…' : '');
-
-  // Radius for row items inside a panel (no overflow-hidden on parent, so we radius each item)
-  const rowRadius =
-    listPosition === 'only' ? 'rounded-[12px]' :
-    listPosition === 'first' ? 'rounded-t-[12px]' :
-    listPosition === 'last'  ? 'rounded-b-[12px]' :
-    '';
-
-  const articleClass = inList
-    ? `px-4 py-3.5 flex flex-col gap-3 cursor-pointer group transition-colors duration-150
-       ${rowRadius}
-       ${listPosition !== 'last' && listPosition !== 'only' ? 'border-b border-divider' : ''}
-       ${highlighted ? 'bg-accent-soft' : 'hover:bg-surface-hover'}`
-    : `bg-surface border border-border rounded-[12px] px-4 py-3.5 flex flex-col gap-3
-       cursor-pointer group transition-all duration-150 hover:shadow-sm
-       ${highlighted ? 'ring-2 ring-accent ring-offset-1' : ''}`;
+  const typeBadge = getTypeBadgeInfo(capture);
 
   return (
     <article
       data-capture-id={capture.id}
-      className={articleClass}
+      className={`bg-surface border border-border rounded-[12px] px-4 py-3.5 flex flex-col gap-2.5
+                  cursor-pointer group transition-all duration-150 hover:shadow-sm
+                  ${highlighted ? 'ring-2 ring-accent ring-offset-1' : ''}`}
       onClick={handleCardClick}
     >
-      {/* Top row */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-wrap">
-          <time className="text-[12px] font-mono text-text-tertiary flex-shrink-0" dateTime={capture.captured_at}>
-            {formatTimestamp(capture.captured_at)}
-          </time>
-          {!capture.is_opened && (
-            <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" title="New" />
-          )}
-          {showLabel && capture.label && (
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-1">
-                <LabelChip label={capture.label} />
-                {onLabelChange && (
-                  <button
-                    onClick={() => setLabelMenuOpen((v) => !v)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity
-                               text-text-tertiary hover:text-text-primary text-xs leading-none px-0.5"
-                    aria-label="Change label"
-                  >
-                    ✎
-                  </button>
-                )}
-              </div>
+      {/* Row 1: label chip (left) + edit / type badge / delete (right) */}
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          {showLabel && capture.label && <LabelChip label={capture.label} />}
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          {onLabelChange && capture.label && (
+            <div className="relative">
+              <button
+                onClick={() => setLabelMenuOpen((v) => !v)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity
+                           text-text-tertiary hover:text-text-primary text-xs leading-none px-0.5"
+                aria-label="Change label"
+              >
+                ✎
+              </button>
               {labelMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setLabelMenuOpen(false)} />
-                  <div className="absolute top-full left-0 mt-1 z-20 bg-surface border border-border
+                  <div className="absolute top-full right-0 mt-1 z-20 bg-surface border border-border
                                   rounded-[10px] shadow-md py-1 min-w-[200px]">
                     {ALL_LABELS.map((l) => (
                       <button
@@ -224,21 +223,23 @@ function CaptureCard({
               )}
             </div>
           )}
-        </div>
-
-        <div
-          className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {isError && onRetry && (
-            <button
-              onClick={onRetry}
-              className="text-xs px-2 py-1 rounded-[6px] bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium"
-            >
-              Retry
-            </button>
-          )}
-          <DeleteButton captureId={capture.id} onDelete={onDelete} />
+          <span
+            className="font-mono flex-shrink-0"
+            style={{ background: '#F2F1ED', color: '#5C5B55', fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}
+          >
+            {typeBadge.icon} {typeBadge.label}
+          </span>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {isError && onRetry && (
+              <button
+                onClick={onRetry}
+                className="text-xs px-2 py-1 rounded-[6px] bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium"
+              >
+                Retry
+              </button>
+            )}
+            <DeleteButton captureId={capture.id} onDelete={onDelete} />
+          </div>
         </div>
       </div>
 
@@ -263,16 +264,35 @@ function CaptureCard({
         </div>
       )}
 
+      {/* URL */}
+      {capture.source_url && (
+        <a
+          href={capture.source_url.startsWith('http') ? capture.source_url : `https://${capture.source_url}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="text-[13px] underline transition-colors line-clamp-2"
+          style={{ color: '#1a6ef5', cursor: 'pointer' }}
+        >
+          {capture.source_url}
+        </a>
+      )}
+
+      {/* Summary — 3 lines max when collapsed */}
       {capture.summary && (
-        <p className="text-sm text-text-primary leading-relaxed">
-          {expanded ? capture.summary : capture.summary.slice(0, 160) + (capture.summary.length > 160 ? '…' : '')}
+        <p className={`text-sm text-text-primary leading-relaxed ${expanded ? '' : 'line-clamp-3'}`}>
+          {capture.summary}
         </p>
       )}
 
-      {contentText && (!capture.summary || expanded) && (
-        <p className="text-sm text-text-secondary leading-relaxed">{previewText}</p>
+      {/* Raw content when no summary or expanded */}
+      {capture.content && (!capture.summary || expanded) && (
+        <p className={`text-sm text-text-secondary leading-relaxed ${expanded ? '' : 'line-clamp-3'}`}>
+          {capture.content}
+        </p>
       )}
 
+      {/* Themes */}
       {Array.isArray(capture.themes) && capture.themes.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {capture.themes.map((t) => (
@@ -284,17 +304,15 @@ function CaptureCard({
         </div>
       )}
 
-      {capture.source_url && (
-        <a
-          href={capture.source_url.startsWith('http') ? capture.source_url : `https://${capture.source_url}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="text-[13px] text-accent hover:underline truncate block transition-colors"
-        >
-          {capture.source_url}
-        </a>
-      )}
+      {/* Timestamp at bottom */}
+      <div className="flex items-center gap-1.5 mt-auto pt-0.5">
+        <time className="text-[12px] font-mono text-text-tertiary" dateTime={capture.captured_at}>
+          {formatTimestamp(capture.captured_at)}
+        </time>
+        {!capture.is_opened && (
+          <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" title="New" />
+        )}
+      </div>
     </article>
   );
 }
@@ -318,16 +336,6 @@ function DeleteButton({ captureId, onDelete }: { captureId: string; onDelete: (i
       aria-label="Delete">
       ✕
     </button>
-  );
-}
-
-// ─── Capture panel (shared container for lists of cards) ─────────────────────
-
-function CapturePanel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-[12px] border border-border bg-surface">
-      {children}
-    </div>
   );
 }
 
@@ -361,17 +369,11 @@ function LabelBoard({
     }
   }, [highlightedId, captures]);
 
-  function getPosition(i: number): ListPosition {
-    if (captures.length === 1) return 'only';
-    if (i === 0) return 'first';
-    if (i === captures.length - 1) return 'last';
-    return 'middle';
-  }
-
   return (
     <section className="mb-6">
       <button
-        className="w-full flex items-center justify-between py-2 px-1 mb-1 group"
+        className="w-full flex items-center justify-between px-1 mb-3 group"
+        style={{ minHeight: '40px', padding: '12px 0' }}
         onClick={() => setCollapsed((c) => !c)}
         aria-expanded={!collapsed}
       >
@@ -379,22 +381,31 @@ function LabelBoard({
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.dot }} />
           <span
             className="font-semibold uppercase tracking-wider text-text-secondary"
-            style={{ fontSize: '12px', letterSpacing: '0.07em' }}
+            style={{ fontSize: '14px', letterSpacing: '0.07em' }}
           >
             {label}
           </span>
-          <span className="font-mono text-text-tertiary" style={{ fontSize: '12px' }}>
+          <span className="font-mono text-text-tertiary" style={{ fontSize: '13px' }}>
             {captures.length}
           </span>
         </div>
-        <span className="text-xs text-text-tertiary group-hover:text-text-secondary transition-colors">
-          {collapsed ? '›' : '⌄'}
+        <span
+          className="flex items-center justify-center w-10 h-10 rounded-[8px] flex-shrink-0
+                     text-text-tertiary group-hover:text-text-secondary group-hover:bg-surface-2
+                     transition-colors"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+            {collapsed
+              ? <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              : <path d="M5 12l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            }
+          </svg>
         </span>
       </button>
 
       {!collapsed && (
-        <CapturePanel>
-          {captures.map((c, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {captures.map((c) => (
             <CaptureCard
               key={c.id}
               capture={c}
@@ -405,11 +416,9 @@ function LabelBoard({
               onMarkOpened={onMarkOpened}
               onLabelChange={onLabelChange}
               showLabel={true}
-              inList={true}
-              listPosition={getPosition(i)}
             />
           ))}
-        </CapturePanel>
+        </div>
       )}
     </section>
   );
@@ -481,13 +490,12 @@ function DailyBriefSection({
 
   return (
     <section className="mb-8">
-      {/* Section header */}
       <div className="flex items-start justify-between gap-3 mb-6">
         <div>
           <p className="font-mono uppercase text-text-tertiary" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
             Today&apos;s Brief
           </p>
-          <h2 className="font-semibold text-text-primary mt-1" style={{ fontSize: '28px', lineHeight: 1.15 }}>
+          <h2 className="font-semibold text-text-primary mt-1" style={{ fontSize: '32px', lineHeight: 1.15 }}>
             {todayLabel}
           </h2>
         </div>
@@ -511,7 +519,6 @@ function DailyBriefSection({
         </div>
       </div>
 
-      {/* States */}
       {!hasEnough ? (
         <div className="py-10 text-center rounded-[12px] border border-dashed border-border bg-surface">
           <p className="text-sm text-text-secondary">
@@ -552,6 +559,23 @@ function DailyBriefSection({
         </div>
       ) : (
         <div className="flex flex-col gap-8">
+          {/* Nudge — prominent callout at top */}
+          <div
+            className="rounded-[12px] px-5 py-4 flex flex-col gap-2"
+            style={{ background: '#1B4D3E' }}
+          >
+            <div className="flex items-center gap-1.5">
+              <span aria-hidden style={{ fontSize: '14px' }}>⚡</span>
+              <span
+                className="font-mono uppercase"
+                style={{ fontSize: '11px', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.55)' }}
+              >
+                Nudge
+              </span>
+            </div>
+            <p className="text-white font-medium leading-snug" style={{ fontSize: '16px' }}>{brief.nudge}</p>
+          </div>
+
           {/* Top 3 */}
           <div>
             <p className="font-mono uppercase text-text-tertiary mb-3" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
@@ -559,12 +583,28 @@ function DailyBriefSection({
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {brief.top_3.map((item, i) => (
-                <div key={i} className="bg-surface border border-border rounded-[12px] p-4 flex flex-col gap-2">
-                  <p className="font-bold text-text-tertiary leading-none" style={{ fontSize: '32px' }}>{i + 1}</p>
-                  <p className="font-semibold text-text-primary mt-2 leading-snug" style={{ fontSize: '15px' }}>{item.title}</p>
-                  <p className="text-text-secondary flex-1 leading-relaxed" style={{ fontSize: '13px' }}>{item.reasoning}</p>
+                <div
+                  key={i}
+                  className="rounded-[12px] p-5 flex flex-col gap-3"
+                  style={{ background: '#FFFFFF', borderLeft: '3px solid #1B4D3E' }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className="font-mono uppercase"
+                        style={{ fontSize: '10px', letterSpacing: '0.12em', color: 'rgba(236,233,224,0.4)' }}
+                      >
+                        {i + 1} of 3
+                      </span>
+                      <p className="font-bold leading-snug text-text-primary" style={{ fontSize: '15px' }}>
+                        {item.title}
+                      </p>
+                    </div>
+                    <span className="text-text-tertiary" style={{ fontSize: '14px', flexShrink: 0, marginTop: '2px' }}>↗</span>
+                  </div>
+                  <p className="text-text-secondary" style={{ fontSize: '13px', lineHeight: 1.5 }}>{item.reasoning}</p>
                   {item.capture_ids.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-1">
+                    <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
                       {item.capture_ids.map((id) => (
                         <CaptureChip key={id} captureId={id} capturesById={capturesById} onClick={onCaptureLinkClick} />
                       ))}
@@ -582,27 +622,31 @@ function DailyBriefSection({
             </p>
             <div className="flex flex-col gap-3">
               {brief.connections.map((conn, i) => (
-                <div key={i} className="bg-surface border border-border rounded-[12px] p-4 flex flex-col gap-2">
-                  <p className="font-medium text-text-primary leading-relaxed" style={{ fontSize: '14px' }}>{conn.description}</p>
+                <div
+                  key={i}
+                  className="rounded-[12px] p-5 flex flex-col gap-3"
+                  style={{ background: '#FFFFFF', borderLeft: '3px solid #1B4D3E' }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium leading-relaxed text-text-primary" style={{ fontSize: '14px' }}>{conn.description}</p>
+                    <span className="text-text-tertiary" style={{ fontSize: '14px', flexShrink: 0, marginTop: '2px' }}>↗</span>
+                  </div>
                   {conn.capture_ids.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {conn.capture_ids.map((id) => (
-                        <CaptureChip key={id} captureId={id} capturesById={capturesById} onClick={onCaptureLinkClick} />
-                      ))}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {conn.capture_ids.flatMap((id, idx) => {
+                        const els = [];
+                        if (idx > 0) els.push(
+                          <span key={`sep-${idx}`} className="font-mono text-text-tertiary flex-shrink-0" style={{ fontSize: '11px' }}>↔</span>
+                        );
+                        els.push(
+                          <CaptureChip key={id} captureId={id} capturesById={capturesById} onClick={onCaptureLinkClick} />
+                        );
+                        return els;
+                      })}
                     </div>
                   )}
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Nudge */}
-          <div>
-            <p className="font-mono uppercase text-text-tertiary mb-3" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
-              Nudge
-            </p>
-            <div className="border-l-[3px] border-accent-soft pl-4 py-3">
-              <p className="text-sm text-text-secondary italic leading-relaxed">{brief.nudge}</p>
             </div>
           </div>
         </div>
@@ -629,15 +673,39 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
 
   const isEmpty = !content.trim() && !url.trim() && !imageFile;
 
+  function handleContentChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const val = e.target.value;
+    // If the whole input is just a URL and the URL field is empty, auto-route it
+    if (!url.trim() && /^https?:\/\/[^\s]+$/.test(val.trim())) {
+      setUrl(val.trim());
+      setContent('');
+      return;
+    }
+    setContent(val);
+  }
+
   async function handleSave() {
     if (isEmpty) return;
     setSaving(true);
+
+    let finalContent = content.trim();
+    let finalUrl = url.trim();
+
+    // Extract URL from content if the URL field wasn't set manually
+    if (!finalUrl) {
+      const extracted = extractUrl(finalContent);
+      if (extracted) {
+        finalUrl = extracted.url;
+        finalContent = extracted.remaining;
+      }
+    }
+
     let imageDataUrl: string | undefined;
     if (imageFile) imageDataUrl = await readFileAsDataURL(imageFile);
     const saved = addCapture({
-      type: detectType(content, url, !!imageFile),
-      content: content.trim(),
-      source_url: url.trim() || undefined,
+      type: detectType(finalContent, finalUrl, !!imageFile),
+      content: finalContent,
+      source_url: finalUrl || undefined,
       image_data_url: imageDataUrl,
     });
     onSave(saved);
@@ -690,7 +758,7 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
           <textarea
             ref={textareaRef}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={handleContentChange}
             onKeyDown={handleKeyDown}
             placeholder="Paste text, a URL, or just a thought…"
             rows={3}
@@ -754,6 +822,79 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
   );
 }
 
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+function Sidebar({ view, setView }: { view: 'brief' | 'captures'; setView: (v: 'brief' | 'captures') => void }) {
+  const navItem = (
+    active: boolean,
+    onClick: () => void,
+    icon: React.ReactNode,
+    label: string
+  ) => (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-[8px] text-sm text-left
+                  transition-colors duration-150
+                  ${active ? 'font-medium' : 'font-normal text-text-secondary hover:bg-surface-2 hover:text-text-primary'}`}
+      style={active ? { background: '#E3EDE9', color: '#1B4D3E' } : {}}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+
+  return (
+    <aside className="w-[220px] flex-shrink-0 bg-surface border-r border-border flex flex-col h-screen">
+      {/* Logo */}
+      <div className="px-5 pt-6 pb-5">
+        <p className="font-semibold text-text-primary" style={{ fontSize: '18px' }}>Wick</p>
+        <p className="font-mono text-text-tertiary mt-1" style={{ fontSize: '11px' }}>AI structures. You write.</p>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex flex-col gap-0.5 px-3 flex-1">
+        {navItem(
+          view === 'captures',
+          () => setView('captures'),
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" />
+            <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" />
+            <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" />
+            <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" />
+          </svg>,
+          'Captures'
+        )}
+        {navItem(
+          view === 'brief',
+          () => setView('brief'),
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M9.5 1.5L3 9h5l-1.5 5.5L14 7H8.5L9.5 1.5z" fill="currentColor" />
+          </svg>,
+          'Brief'
+        )}
+        <Link
+          href="/portfolio"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-[8px] text-sm font-normal
+                     text-text-secondary hover:bg-surface-2 hover:text-text-primary
+                     transition-colors duration-150"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M2 6l6-3.5L14 6l-6 3.5L2 6z" fill="currentColor" />
+            <path d="M2 9.5l6 3.5 6-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M2 12l6 3.5 6-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
+          Portfolio
+        </Link>
+      </nav>
+
+      {/* Footer */}
+      <div className="px-5 py-4">
+        <p className="font-mono text-text-tertiary" style={{ fontSize: '10px' }}>v0.1 · designathon</p>
+      </div>
+    </aside>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -762,6 +903,7 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [view, setView] = useState<'brief' | 'captures'>('captures');
 
   useEffect(() => {
     getCaptures().forEach((c) => {
@@ -831,9 +973,12 @@ export default function Home() {
   function handleCaptureLinkClick(id: string) {
     handleMarkOpened(id);
     setHighlightedId(id);
-    const el = document.querySelector(`[data-capture-id="${id}"]`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => setHighlightedId(null), 1500);
+    setView('captures');
+    setTimeout(() => {
+      const el = document.querySelector(`[data-capture-id="${id}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    setTimeout(() => setHighlightedId(null), 1600);
   }
 
   async function backfillAll() {
@@ -867,122 +1012,107 @@ export default function Home() {
   const idleUncategorized = uncategorized.filter((c) => !catStates[c.id]);
   const hasAnything = captures.length > 0;
 
-  function getPosition(i: number, total: number): ListPosition {
-    if (total === 1) return 'only';
-    if (i === 0) return 'first';
-    if (i === total - 1) return 'last';
-    return 'middle';
-  }
-
   return (
-    <div className="min-h-screen bg-bg">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-50 w-full bg-surface border-b border-border shadow-sm">
-        <div className="max-w-[720px] mx-auto px-6 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="font-semibold text-text-primary tracking-tight" style={{ fontSize: '18px' }}>Wick</span>
-            <span className="font-mono px-2.5 py-1 rounded-full bg-accent-soft text-accent" style={{ fontSize: '11px' }}>
-              AI structures. You write.
-            </span>
-          </div>
-          <nav className="flex items-center gap-6">
-            <Link href="/" className="text-sm font-semibold text-accent border-b-2 border-accent pb-px">
-              Brief
-            </Link>
-            <Link href="/portfolio" className="text-sm font-medium text-text-secondary hover:text-text-primary border-b-2 border-transparent pb-px transition-colors duration-150">
-              Portfolio
-            </Link>
-          </nav>
-        </div>
-      </header>
+    <div className="flex h-screen bg-bg overflow-hidden">
+      <Sidebar view={view} setView={setView} />
 
-      {/* Content */}
-      <div className="max-w-[720px] mx-auto px-6 py-8">
+      <main className="flex-1 overflow-y-auto h-screen">
+        <div className="px-10 py-8">
 
-        {hydrated && (
-          <DailyBriefSection captures={captures} onCaptureLinkClick={handleCaptureLinkClick} />
-        )}
-
-        <div className="h-px bg-divider mb-8" />
-
-        <CaptureForm onSave={handleSave} />
-
-        {!hydrated ? null : !hasAnything ? (
-          <div className="py-16 text-center">
-            <p className="text-text-secondary text-sm leading-relaxed">
-              Nothing here yet.{' '}
-              <span className="text-text-tertiary">Paste something and we&apos;ll figure out where it goes.</span>
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Backfill */}
-            {idleUncategorized.length > 0 && (
-              <div className="mb-6 flex items-center justify-between py-2.5 px-4 rounded-[10px] bg-surface border border-border">
-                <span className="text-xs text-text-secondary">
-                  {idleUncategorized.length} capture{idleUncategorized.length !== 1 ? 's' : ''} without a label
-                </span>
-                <button
-                  onClick={() => void backfillAll()}
-                  disabled={backfilling}
-                  className="text-xs px-3 py-1.5 rounded-[6px] bg-accent text-white font-semibold
-                             hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed
-                             transition-colors duration-150"
-                >
-                  {backfilling ? 'Categorizing…' : 'Categorize all'}
-                </button>
+          {view === 'brief' ? (
+            hydrated ? (
+              <DailyBriefSection captures={captures} onCaptureLinkClick={handleCaptureLinkClick} />
+            ) : null
+          ) : (
+            <>
+              {/* Welcome header */}
+              <div className="mb-8">
+                <h1 className="font-semibold text-text-primary" style={{ fontSize: '28px', lineHeight: 1.2 }}>
+                  Welcome Jyo!
+                </h1>
+                <p className="text-text-secondary mt-1 text-sm">Here&apos;s everything you&apos;ve been saving.</p>
               </div>
-            )}
 
-            {/* Just captured */}
-            {uncategorized.length > 0 && (
-              <section className="mb-8">
-                <div className="flex items-center gap-2 mb-2 px-1">
-                  <p className="font-mono uppercase text-text-tertiary" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
-                    Just captured
+              <CaptureForm onSave={handleSave} />
+
+              {!hydrated ? null : !hasAnything ? (
+                <div className="py-16 text-center">
+                  <p className="text-text-secondary text-sm leading-relaxed">
+                    Nothing here yet.{' '}
+                    <span className="text-text-tertiary">Paste something and we&apos;ll figure out where it goes.</span>
                   </p>
-                  <span className="font-mono text-text-tertiary" style={{ fontSize: '11px' }}>{uncategorized.length}</span>
                 </div>
-                <CapturePanel>
-                  {uncategorized.map((c, i) => (
-                    <CaptureCard
-                      key={c.id}
-                      capture={c}
-                      catState={catStates[c.id]}
-                      highlighted={highlightedId === c.id}
-                      onRetry={() => void categorize(c)}
+              ) : (
+                <>
+                  {/* Backfill */}
+                  {idleUncategorized.length > 0 && (
+                    <div className="mb-6 flex items-center justify-between py-2.5 px-4 rounded-[10px] bg-surface border border-border">
+                      <span className="text-xs text-text-secondary">
+                        {idleUncategorized.length} capture{idleUncategorized.length !== 1 ? 's' : ''} without a label
+                      </span>
+                      <button
+                        onClick={() => void backfillAll()}
+                        disabled={backfilling}
+                        className="text-xs px-3 py-1.5 rounded-[6px] bg-accent text-white font-semibold
+                                   hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed
+                                   transition-colors duration-150"
+                      >
+                        {backfilling ? 'Categorizing…' : 'Categorize all'}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Just captured */}
+                  {uncategorized.length > 0 && (
+                    <section className="mb-8">
+                      <div className="flex items-center gap-2 mb-2 px-1">
+                        <p className="font-mono uppercase text-text-tertiary" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
+                          Just captured
+                        </p>
+                        <span className="font-mono text-text-tertiary" style={{ fontSize: '11px' }}>{uncategorized.length}</span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {uncategorized.map((c) => (
+                          <CaptureCard
+                            key={c.id}
+                            capture={c}
+                            catState={catStates[c.id]}
+                            highlighted={highlightedId === c.id}
+                            onRetry={() => void categorize(c)}
+                            onDelete={handleDelete}
+                            onMarkOpened={handleMarkOpened}
+                            showLabel={false}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {uncategorized.length > 0 && boards.length > 0 && (
+                    <div className="h-px bg-divider mb-8" />
+                  )}
+
+                  {/* Label boards */}
+                  {boards.map(([label, boardCaptures]) => (
+                    <LabelBoard
+                      key={label}
+                      label={label}
+                      captures={boardCaptures}
+                      catStates={catStates}
+                      highlightedId={highlightedId}
+                      onRetry={(c) => void categorize(c)}
                       onDelete={handleDelete}
                       onMarkOpened={handleMarkOpened}
-                      showLabel={false}
-                      inList={true}
-                      listPosition={getPosition(i, uncategorized.length)}
+                      onLabelChange={handleLabelChange}
                     />
                   ))}
-                </CapturePanel>
-              </section>
-            )}
+                </>
+              )}
+            </>
+          )}
 
-            {uncategorized.length > 0 && boards.length > 0 && (
-              <div className="h-px bg-divider mb-8" />
-            )}
-
-            {/* Label boards */}
-            {boards.map(([label, boardCaptures]) => (
-              <LabelBoard
-                key={label}
-                label={label}
-                captures={boardCaptures}
-                catStates={catStates}
-                highlightedId={highlightedId}
-                onRetry={(c) => void categorize(c)}
-                onDelete={handleDelete}
-                onMarkOpened={handleMarkOpened}
-                onLabelChange={handleLabelChange}
-              />
-            ))}
-          </>
-        )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -116,29 +116,39 @@ Expanded: white card, 16px radius, shadow-sm, 16px padding. Textarea: no border,
 
 ## Board headers
 
-Per-label, collapsible. Left: 8px color dot + label name (13px, 600, UPPERCASE, tracking-wider, text-secondary) + count (13px mono, text-tertiary). Right: collapse chevron (text-tertiary, transitions).
+Per-label, collapsible. Min-height: 40px. Padding: 12px 0. Left: 8px color dot + label name (14px, 600, UPPERCASE, tracking-wider, text-secondary) + count (13px mono, text-tertiary). Right: collapse chevron (text-tertiary, transitions). Entire row is the click target.
 
 ## Capture cards
 
 bg-surface, border border-border, 12px radius, px-4 py-3.5. Hover: shadow-sm. Transition: 150ms.
 
-Top row: timestamp (12px mono text-tertiary) + label chip (11px pill, label colors) + ✎ edit on group-hover.
-Summary: 14px text-primary, 1.6 line-height, 3-line clamp collapsed.
+Top row left: timestamp (12px mono text-tertiary) + ✎ label-change button on group-hover.
+Top row right: type badge (always visible) + delete/retry (group-hover only).
+
+Type badge: 10px mono, bg #F2F1ED, text #5C5B55, padding 2px 6px, border-radius 4px.
+- 'text' → 📝 NOTE
+- 'image' → 🖼 IMAGE
+- 'url' / 'mixed' with source_url → 🔗 {domain} (hostname without www)
+- 'mixed' without source_url → 📝 NOTE
+
+Summary: 14px text-primary, 1.6 line-height.
 Themes: 11px mono pill, surface-2 bg, text-secondary.
-Source URL: 13px accent color, underline on hover, truncated.
-Delete: appears on group-hover, top-right.
+Source URL: 13px, color #1a6ef5, underline always, truncated.
+Delete: appears on group-hover, top-right (alongside type badge).
 
 ## Daily brief
 
 Section label "TODAY'S BRIEF": 11px mono, uppercase, letter-spacing 0.1em, text-tertiary.
-Date: 28px, 600 weight, text-primary (e.g. "Thursday, May 28").
+Date: 32px, 600 weight, text-primary (e.g. "Thursday, May 28").
 Generated time: 12px text-tertiary, right-aligned.
 
-Top 3 cards: 3-column grid (sm+), 1-col mobile. Each: white surface, border, 12px radius, 16px padding. Number: 32px 700 weight text-tertiary. Title: 15px 600 text-primary mt-2. Reasoning: 13px text-secondary.
+Order: Nudge callout → Top 3 today → Connections worth noticing.
 
-Connection cards: full width, same card style. Text: 14px 500 text-primary. Chips: surface-2 bg, 6px radius.
+Nudge callout: full-width card, bg #1B4D3E (dark green), 12px radius, px-5 py-4. Header: ⚡ icon + "NUDGE" label (11px mono uppercase, white/55% opacity). Text: 16px, 500 weight, white.
 
-Nudge: 3px solid accent-soft left border, 12px/16px padding, 14px italic text-secondary.
+Top 3 cards: 3-column grid (sm+), 1-col mobile. Each: white surface, border, 12px radius, 16px padding. Number: 48px 700 weight #E8E7E3 (large, decorative). Title: 15px 600 text-primary. Reasoning: 13px #5C5B55, line-height 1.5. Capture chips at bottom.
+
+Connection cards: full width, white surface, border (left border overridden to 3px solid #E3EDE9 / accent-soft). Text: 14px 500 #141413. Capture chips joined by ↔ separator (11px mono text-tertiary).
 
 ## Portfolio page
 
