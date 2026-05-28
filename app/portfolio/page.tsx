@@ -43,8 +43,8 @@ function CaptureRefChip({
   const preview = raw.length > 55 ? raw.slice(0, 55) + '…' : raw;
   return (
     <span
-      className="text-xs px-2.5 py-1 rounded-full border border-border bg-surface
-                 text-text-secondary max-w-[220px] truncate inline-block"
+      className="text-xs px-2.5 py-1 rounded-[6px] bg-surface-2 text-text-secondary
+                 max-w-[220px] truncate inline-block"
       title={capture.summary ?? capture.content ?? ''}
     >
       {preview || '(image capture)'}
@@ -142,46 +142,50 @@ export default function PortfolioPage() {
 
   return (
     <div className="min-h-screen bg-bg">
-      <div className="max-w-[720px] mx-auto px-6 py-10">
-
-        {/* Header */}
-        <header className="mb-10">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-baseline gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Wick</h1>
-              <span className="text-xs font-mono text-text-tertiary px-2 py-0.5 rounded-full border border-border">
-                AI structures. You write.
-              </span>
-            </div>
-            <nav className="flex items-center gap-1">
-              <Link
-                href="/"
-                className="text-xs font-mono px-3 py-1.5 rounded-[8px] text-text-secondary
-                           hover:text-text-primary transition-colors"
-              >
-                Brief
-              </Link>
-              <Link
-                href="/portfolio"
-                className="text-xs font-mono px-3 py-1.5 rounded-[8px] bg-accent-soft
-                           text-accent font-medium"
-              >
-                Portfolio
-              </Link>
-            </nav>
+      {/* Sticky header — full width */}
+      <header className="sticky top-0 z-50 w-full bg-surface border-b border-border">
+        <div className="max-w-[720px] mx-auto px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-text-primary tracking-tight" style={{ fontSize: '18px' }}>
+              Wick
+            </span>
+            <span
+              className="font-mono px-2.5 py-1 rounded-full bg-accent-soft text-accent"
+              style={{ fontSize: '11px' }}
+            >
+              AI structures. You write.
+            </span>
           </div>
-        </header>
+          <nav className="flex items-center gap-6">
+            <Link
+              href="/"
+              className="text-sm font-medium text-text-secondary hover:text-text-primary border-b-2 border-transparent pb-px transition-colors duration-150"
+            >
+              Brief
+            </Link>
+            <Link
+              href="/portfolio"
+              className="text-sm font-semibold text-accent border-b-2 border-accent pb-px"
+            >
+              Portfolio
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="max-w-[720px] mx-auto px-6 py-8">
 
         {/* Section 1: Portfolio Input */}
-        <section className="mb-10">
-          <h2 className="text-xl font-semibold tracking-tight text-text-primary mb-1">
+        <section className="mb-8">
+          <p className="font-mono uppercase text-text-tertiary mb-2" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
             Your Portfolio
-          </h2>
-          <p className="text-sm text-text-secondary mb-1">
-            List your existing case studies. Wick will find what&apos;s missing.
           </p>
-          <p className="text-xs text-text-tertiary mb-4">
-            List the projects you&apos;ve already documented. One per line. Don&apos;t worry about formatting — just the names you know them by.
+          <h2 className="font-semibold text-text-primary mb-1" style={{ fontSize: '28px', lineHeight: 1.15 }}>
+            What have you built?
+          </h2>
+          <p className="text-sm text-text-secondary mb-4 leading-relaxed">
+            List your existing case studies — one per line. Wick will find what&apos;s missing.
           </p>
 
           <textarea
@@ -191,16 +195,16 @@ export default function PortfolioPage() {
               'JARVIS — Voice assistant for task reading\nE-Scoot — Fleet management UX for e-scooter platform\nFAB Learning — SaaS platform redesign\nFeature Exploration — Independent design concepts'
             }
             rows={4}
-            className="w-full text-sm text-text-primary placeholder:text-text-tertiary
-                       bg-surface border border-border rounded-[12px] p-4 resize-none
-                       outline-none leading-relaxed focus:border-accent transition-colors"
+            className="w-full text-[15px] text-text-primary placeholder:text-text-tertiary
+                       bg-surface border border-border rounded-[16px] p-4 resize-none
+                       outline-none leading-relaxed focus:border-accent transition-colors duration-150"
           />
 
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-end mt-3">
             <button
               onClick={handleSaveTitles}
-              className="text-xs px-4 py-1.5 rounded-[8px] bg-accent text-white font-medium
-                         hover:opacity-90 transition-opacity"
+              className="text-sm px-5 py-2 rounded-[8px] bg-accent text-white font-semibold
+                         hover:bg-accent-hover transition-colors duration-150"
             >
               Save portfolio
             </button>
@@ -230,7 +234,7 @@ export default function PortfolioPage() {
                 </div>
                 {portfolioTitles.length < 3 && (
                   <p className="text-xs text-text-tertiary mt-3">
-                    Tip: Include all your case studies for the most accurate analysis — missing titles can skew the results.
+                    Tip: Include all your case studies for the most accurate analysis.
                   </p>
                 )}
               </div>
@@ -242,33 +246,37 @@ export default function PortfolioPage() {
           )}
         </section>
 
+        {/* Divider */}
+        <div className="h-px bg-divider mb-8" />
+
         {/* Section 2: Analyze */}
-        <section className="mb-10">
-          <div className="flex items-center gap-3 flex-wrap">
+        <section className="mb-8">
+          <div className="flex items-center gap-4 flex-wrap">
             <button
               onClick={() => void analyze()}
               disabled={!canAnalyze || analyzing}
-              className="text-sm px-5 py-2 rounded-[8px] bg-accent text-white font-medium
-                         hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed
-                         transition-opacity"
+              className="text-sm px-5 py-2 rounded-[8px] bg-accent text-white font-semibold
+                         hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed
+                         transition-colors duration-150"
             >
               {analyzing ? 'Analyzing…' : gap ? 'Re-analyze' : 'Analyze gap'}
             </button>
             {gap && !analyzing && (
-              <span className="text-xs font-mono text-text-tertiary">
+              <span className="font-mono text-text-tertiary" style={{ fontSize: '12px' }}>
                 analyzed {formatTimestamp(gap.generated_at)}
               </span>
             )}
           </div>
+
           {!analyzing && (
-            <p className="text-xs text-text-tertiary mt-2">
-              Wick will compare what you&apos;ve saved against what&apos;s in your portfolio — and show you what&apos;s missing.
+            <p className="text-xs text-text-tertiary mt-3 leading-relaxed">
+              Wick compares what you&apos;ve saved against what&apos;s in your portfolio — and shows you what&apos;s missing.
             </p>
           )}
 
           {hydrated && !hasEnough && (
             <p className="text-xs text-text-tertiary mt-2">
-              Save more captures to Wick before analyzing — the more context Wick has, the more accurate the gap analysis.{' '}
+              Save more captures before analyzing — the more context Wick has, the sharper the gap analysis.{' '}
               <span className="font-mono">({captures.length} of 10 needed)</span>
             </p>
           )}
@@ -282,7 +290,7 @@ export default function PortfolioPage() {
         {/* Results */}
         {analyzing ? (
           <div className="py-16 text-center rounded-[12px] border border-border bg-surface">
-            <div className="inline-flex items-center gap-2 text-sm text-text-tertiary">
+            <div className="inline-flex items-center gap-2 text-sm text-text-tertiary animate-pulse">
               <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
               Analyzing your portfolio…
             </div>
@@ -306,7 +314,7 @@ export default function PortfolioPage() {
             {/* Missing case studies */}
             {(gap.missing_case_studies ?? []).length > 0 && (
               <section>
-                <p className="text-xs font-mono text-text-tertiary uppercase tracking-widest mb-4">
+                <p className="font-mono uppercase text-text-tertiary mb-4" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
                   What&apos;s missing from your portfolio
                 </p>
                 <div className="flex flex-col gap-6">
@@ -317,10 +325,10 @@ export default function PortfolioPage() {
                     >
                       {/* Title + evidence */}
                       <div>
-                        <h3 className="text-lg font-semibold text-text-primary leading-snug">
+                        <h3 className="font-semibold text-text-primary leading-snug" style={{ fontSize: '18px' }}>
                           {mc.suggested_title}
                         </h3>
-                        <p className="text-sm text-text-secondary mt-1 leading-relaxed">
+                        <p className="text-[13px] text-text-secondary mt-2 leading-relaxed">
                           {mc.evidence}
                         </p>
                       </div>
@@ -336,19 +344,25 @@ export default function PortfolioPage() {
 
                       {/* Skeleton */}
                       <div className="flex flex-col gap-2">
-                        <p className="text-xs font-mono text-text-tertiary uppercase tracking-widest mb-1">
+                        <p
+                          className="font-mono uppercase text-text-tertiary mb-1"
+                          style={{ fontSize: '10px', letterSpacing: '0.1em' }}
+                        >
                           Structure
                         </p>
                         {(mc.skeleton?.sections ?? []).map((section, si) => (
                           <div
                             key={si}
-                            className={`rounded-[8px] p-3 flex flex-col gap-2 ${
+                            className={`rounded-[8px] px-4 py-3 flex flex-col gap-2 ${
                               (section.mapped_captures ?? []).length > 0
                                 ? 'bg-surface border border-border'
                                 : 'bg-surface-2'
                             }`}
                           >
-                            <p className="text-xs font-mono uppercase tracking-wide text-text-tertiary">
+                            <p
+                              className="font-mono uppercase text-text-tertiary"
+                              style={{ fontSize: '10px', letterSpacing: '0.1em' }}
+                            >
                               {section.name}
                             </p>
                             {(section.mapped_captures ?? []).length > 0 ? (
@@ -366,7 +380,9 @@ export default function PortfolioPage() {
                         ))}
                       </div>
 
-                      <p className="text-xs font-mono text-accent">AI structures. You write.</p>
+                      <p className="font-mono text-accent" style={{ fontSize: '11px' }}>
+                        AI structures. You write.
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -376,7 +392,7 @@ export default function PortfolioPage() {
             {/* Stale case studies */}
             {(gap.stale_case_studies ?? []).length > 0 && (
               <section>
-                <p className="text-xs font-mono text-text-tertiary uppercase tracking-widest mb-4">
+                <p className="font-mono uppercase text-text-tertiary mb-4" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
                   Worth updating
                 </p>
                 <div className="flex flex-col gap-3">

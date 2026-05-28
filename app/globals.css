@@ -1,32 +1,55 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #FAFAF7;
+  --bg: #F8F7F4;
   --surface: #FFFFFF;
-  --surface-2: #F4F2EC;
-  --text-primary: #1A1A1A;
-  --text-secondary: #6B6B6B;
-  --text-tertiary: #9A9A9A;
-  --accent: #2D5F4E;
-  --accent-soft: #E8F0EC;
-  --border: #E5E5E0;
-  --divider: #EFEFEA;
+  --surface-2: #F2F1ED;
+  --surface-hover: #ECEAE5;
+  --text-primary: #141413;
+  --text-secondary: #5C5B55;
+  --text-tertiary: #9C9B95;
+  --accent: #1B4D3E;
+  --accent-hover: #163D31;
+  --accent-soft: #E3EDE9;
+  --accent-foreground: #FFFFFF;
+  --border: #E8E7E3;
+  --divider: #F0EFE9;
+
+  /* Label chip colors */
+  --label-uipattern-bg: #EEF2FF;
+  --label-uipattern-text: #3730A3;
+  --label-portfolionotes-bg: #FEF3C7;
+  --label-portfolionotes-text: #92400E;
+  --label-studymaterial-bg: #EFF6FF;
+  --label-studymaterial-text: #1D4ED8;
+  --label-designinspiration-bg: #FDF2F8;
+  --label-designinspiration-text: #9D174D;
+  --label-designdecisions-bg: #F5F3FF;
+  --label-designdecisions-text: #5B21B6;
+  --label-interviewprep-bg: #F0FDFA;
+  --label-interviewprep-text: #115E59;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-foreground: var(--accent-foreground);
   --color-border: var(--border);
   --color-divider: var(--divider);
 
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-jetbrains-mono);
+  --font-sans: var(--font-pjs), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --shadow-sm: 0 1px 3px rgba(20, 20, 19, 0.06), 0 1px 2px rgba(20, 20, 19, 0.04);
+  --shadow-md: 0 4px 12px rgba(20, 20, 19, 0.08), 0 2px 4px rgba(20, 20, 19, 0.04);
 
   --radius-card: 12px;
   --radius-btn: 8px;
@@ -37,4 +60,20 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface-2);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: 3px;
 }

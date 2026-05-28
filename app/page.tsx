@@ -11,12 +11,12 @@ import {
 // ─── Label config ─────────────────────────────────────────────────────────────
 
 const LABEL_STYLES: Record<CaptureLabel, { bg: string; color: string; dot: string }> = {
-  'UI Pattern':         { bg: '#EEF2FF', color: '#4338CA', dot: '#6366F1' },
-  'Portfolio Notes':    { bg: '#FFF7ED', color: '#C2410C', dot: '#EA580C' },
-  'Study Material':     { bg: '#ECFEFF', color: '#0E7490', dot: '#0891B2' },
-  'Design Inspiration': { bg: '#FDF4FF', color: '#A21CAF', dot: '#DB2777' },
-  'Design Decisions':   { bg: '#FEF3C7', color: '#92400E', dot: '#7C2D12' },
-  'Interview Prep':     { bg: '#ECFDF5', color: '#065F46', dot: '#0D7A5F' },
+  'UI Pattern':         { bg: '#EEF2FF', color: '#3730A3', dot: '#6366F1' },
+  'Portfolio Notes':    { bg: '#FEF3C7', color: '#92400E', dot: '#EA580C' },
+  'Study Material':     { bg: '#EFF6FF', color: '#1D4ED8', dot: '#3B82F6' },
+  'Design Inspiration': { bg: '#FDF2F8', color: '#9D174D', dot: '#DB2777' },
+  'Design Decisions':   { bg: '#F5F3FF', color: '#5B21B6', dot: '#7C3AED' },
+  'Interview Prep':     { bg: '#F0FDFA', color: '#115E59', dot: '#0D9488' },
 };
 
 const ALL_LABELS: CaptureLabel[] = [
@@ -76,8 +76,8 @@ function LabelChip({ label }: { label: CaptureLabel }) {
   const s = LABEL_STYLES[label];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium font-mono"
-      style={{ background: s.bg, color: s.color }}
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium"
+      style={{ background: s.bg, color: s.color, fontSize: '11px' }}
     >
       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
       {label}
@@ -103,9 +103,8 @@ function CaptureChip({
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(captureId); }}
-      className="text-xs px-2.5 py-1 rounded-full border border-border bg-surface
-                 text-text-secondary hover:border-accent hover:text-accent transition-colors
-                 max-w-[220px] truncate text-left"
+      className="text-xs px-2.5 py-1 rounded-[6px] bg-surface-2 text-text-secondary
+                 hover:text-accent transition-colors max-w-[220px] truncate text-left"
       title={capture.summary ?? capture.content ?? ''}
     >
       {preview || '(image capture)'}
@@ -151,25 +150,23 @@ function CaptureCard({
 
   const ringClass = highlighted
     ? 'ring-2 ring-accent ring-offset-1'
-    : !capture.is_opened
-    ? 'ring-1 ring-accent/10'
     : '';
 
   return (
     <article
       data-capture-id={capture.id}
-      className={`bg-surface border border-border rounded-[12px] p-4 flex flex-col gap-3
-        cursor-pointer group transition-all hover:shadow-sm ${ringClass}`}
+      className={`bg-surface border border-border rounded-[12px] px-4 py-3.5 flex flex-col gap-3
+        cursor-pointer group transition-all duration-150 hover:shadow-sm ${ringClass}`}
       onClick={handleCardClick}
     >
       {/* Top row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
-          <time className="text-xs font-mono text-text-tertiary flex-shrink-0" dateTime={capture.captured_at}>
+          <time className="text-[12px] font-mono text-text-tertiary flex-shrink-0" dateTime={capture.captured_at}>
             {formatTimestamp(capture.captured_at)}
           </time>
           {!capture.is_opened && (
-            <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" title="New" />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" title="New" />
           )}
           {showLabel && capture.label && (
             <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -193,7 +190,7 @@ function CaptureCard({
                     onClick={() => setLabelMenuOpen(false)}
                   />
                   <div className="absolute top-full left-0 mt-1 z-20 bg-surface border border-border
-                                  rounded-[10px] shadow-lg py-1 min-w-[200px]">
+                                  rounded-[10px] shadow-md py-1 min-w-[200px]">
                     {ALL_LABELS.map((l) => (
                       <button
                         key={l}
@@ -271,9 +268,9 @@ function CaptureCard({
       )}
 
       {Array.isArray(capture.themes) && capture.themes.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {capture.themes.map((t) => (
-            <span key={t} className="text-xs font-mono px-2 py-0.5 rounded-full bg-surface-2 text-text-secondary">
+            <span key={t} className="font-mono px-2 py-0.5 rounded-full bg-surface-2 text-text-secondary" style={{ fontSize: '11px' }}>
               {t}
             </span>
           ))}
@@ -286,16 +283,7 @@ function CaptureCard({
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          style={{
-            color: '#2D5F4E',
-            textDecoration: 'underline',
-            cursor: 'pointer',
-            fontSize: '0.875rem',
-            display: 'block',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
+          className="text-[13px] text-accent hover:underline truncate block transition-colors"
         >
           {capture.source_url}
         </a>
@@ -324,7 +312,7 @@ function DeleteButton({ captureId, onDelete }: { captureId: string; onDelete: (i
   ) : (
     <button
       onClick={() => setConfirming(true)}
-      className="text-xs px-2 py-1 rounded-[6px] text-text-tertiary hover:text-red-500 hover:bg-red-50"
+      className="text-xs px-2 py-1 rounded-[6px] text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-colors"
       aria-label="Delete"
     >
       ✕
@@ -356,7 +344,6 @@ function LabelBoard({
   const [collapsed, setCollapsed] = useState(false);
   const s = LABEL_STYLES[label];
 
-  // Auto-expand if a highlighted capture lives in this board
   useEffect(() => {
     if (highlightedId && captures.some((c) => c.id === highlightedId)) {
       setCollapsed(false);
@@ -372,11 +359,18 @@ function LabelBoard({
       >
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.dot }} />
-          <span className="text-sm font-medium text-text-primary">{label}</span>
-          <span className="text-xs font-mono text-text-tertiary">{captures.length}</span>
+          <span
+            className="font-semibold uppercase tracking-wider text-text-secondary"
+            style={{ fontSize: '13px', letterSpacing: '0.06em' }}
+          >
+            {label}
+          </span>
+          <span className="font-mono text-text-tertiary" style={{ fontSize: '13px' }}>
+            {captures.length}
+          </span>
         </div>
         <span className="text-xs text-text-tertiary group-hover:text-text-secondary transition-colors">
-          {collapsed ? '▶' : '▼'}
+          {collapsed ? '›' : '⌄'}
         </span>
       </button>
 
@@ -430,7 +424,6 @@ function DailyBriefSection({
     setGenerating(true);
     setGenError(false);
     try {
-      // Strip image data — not needed for brief generation, keeps payload small
       const payload = captures.map((c) => ({
         id: c.id,
         type: c.type,
@@ -460,49 +453,59 @@ function DailyBriefSection({
     }
   }
 
+  const todayLabel = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
   return (
-    <section className="mb-10">
+    <section className="mb-8">
       {/* Section header */}
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="flex items-start justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-text-primary">
-            Today&apos;s brief
+          <p className="font-mono uppercase text-text-tertiary" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
+            Today&apos;s Brief
+          </p>
+          <h2 className="font-semibold text-text-primary mt-1" style={{ fontSize: '28px', lineHeight: 1.15 }}>
+            {todayLabel}
           </h2>
+        </div>
+        <div className="flex flex-col items-end gap-2 flex-shrink-0 mt-1">
           {brief && !generating && (
-            <p className="text-xs font-mono text-text-tertiary mt-1">
-              {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-              {' · '}generated {formatTimestamp(brief.generated_at)}
+            <p className="text-xs text-text-tertiary">
+              generated {formatTimestamp(brief.generated_at)}
             </p>
           )}
+          {hasEnough && (
+            <button
+              onClick={() => void generate()}
+              disabled={generating}
+              className="text-sm px-5 py-2 rounded-[8px] bg-accent text-white font-semibold
+                         hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed
+                         transition-colors duration-150"
+            >
+              {generating ? 'Generating…' : brief ? 'Regenerate' : 'Generate brief'}
+            </button>
+          )}
         </div>
-        {hasEnough && (
-          <button
-            onClick={() => void generate()}
-            disabled={generating}
-            className="flex-shrink-0 mt-0.5 text-xs px-3 py-1.5 rounded-[8px] border border-border
-                       bg-surface text-text-secondary hover:border-accent hover:text-accent
-                       transition-colors disabled:opacity-40 disabled:cursor-not-allowed font-medium"
-          >
-            {generating ? 'Generating…' : brief ? 'Regenerate' : 'Generate brief'}
-          </button>
-        )}
       </div>
 
       {/* States */}
       {!hasEnough ? (
-        <div className="py-8 text-center rounded-[12px] border border-dashed border-border">
+        <div className="py-10 text-center rounded-[12px] border border-dashed border-border">
           <p className="text-sm text-text-secondary">
             Save a few more captures and your brief will appear here.
           </p>
-          <p className="text-xs font-mono text-text-tertiary mt-1">
+          <p className="font-mono text-text-tertiary mt-1" style={{ fontSize: '12px' }}>
             {captures.length} of 5 needed
           </p>
         </div>
       ) : generating ? (
         <div className="py-10 text-center rounded-[12px] border border-border bg-surface">
-          <div className="inline-flex items-center gap-2 text-sm text-text-tertiary">
+          <div className="inline-flex items-center gap-2 text-sm text-text-tertiary animate-pulse">
             <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-            Structuring your brief…
+            Generating brief…
           </div>
         </div>
       ) : genError ? (
@@ -525,24 +528,31 @@ function DailyBriefSection({
           </p>
           <button
             onClick={() => void generate()}
-            className="text-sm px-5 py-2 rounded-[8px] bg-accent text-white font-medium
-                       hover:opacity-90 transition-opacity"
+            className="text-sm px-5 py-2 rounded-[8px] bg-accent text-white font-semibold
+                       hover:bg-accent-hover transition-colors duration-150"
           >
             Generate today&apos;s brief
           </button>
         </div>
       ) : (
-        <div className="rounded-[12px] border border-border bg-surface p-6 flex flex-col gap-8">
+        <div className="flex flex-col gap-8">
           {/* Top 3 */}
           <div>
-            <p className="text-xs font-mono text-text-tertiary uppercase tracking-widest mb-3">
+            <p className="font-mono uppercase text-text-tertiary mb-3" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
               Top 3 today
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {brief.top_3.map((item, i) => (
-                <div key={i} className="bg-surface-2 rounded-[12px] p-4 flex flex-col gap-2">
-                  <p className="text-sm font-semibold text-text-primary leading-snug">{item.title}</p>
-                  <p className="text-xs text-text-secondary leading-relaxed flex-1">{item.reasoning}</p>
+                <div key={i} className="bg-surface border border-border rounded-[12px] p-4 flex flex-col gap-2">
+                  <p className="font-bold text-text-tertiary leading-none" style={{ fontSize: '32px' }}>
+                    {i + 1}
+                  </p>
+                  <p className="font-semibold text-text-primary mt-2 leading-snug" style={{ fontSize: '15px' }}>
+                    {item.title}
+                  </p>
+                  <p className="text-text-secondary flex-1 leading-relaxed" style={{ fontSize: '13px' }}>
+                    {item.reasoning}
+                  </p>
                   {item.capture_ids.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {item.capture_ids.map((id) => (
@@ -562,13 +572,15 @@ function DailyBriefSection({
 
           {/* Connections */}
           <div>
-            <p className="text-xs font-mono text-text-tertiary uppercase tracking-widest mb-3">
+            <p className="font-mono uppercase text-text-tertiary mb-3" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
               Connections worth noticing
             </p>
             <div className="flex flex-col gap-3">
               {brief.connections.map((conn, i) => (
-                <div key={i} className="bg-surface-2 rounded-[12px] p-4 flex flex-col gap-2">
-                  <p className="text-sm text-text-primary leading-relaxed">{conn.description}</p>
+                <div key={i} className="bg-surface border border-border rounded-[12px] p-4 flex flex-col gap-2">
+                  <p className="font-medium text-text-primary leading-relaxed" style={{ fontSize: '14px' }}>
+                    {conn.description}
+                  </p>
                   {conn.capture_ids.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {conn.capture_ids.map((id) => (
@@ -588,10 +600,12 @@ function DailyBriefSection({
 
           {/* Nudge */}
           <div>
-            <p className="text-xs font-mono text-text-tertiary uppercase tracking-widest mb-2">
+            <p className="font-mono uppercase text-text-tertiary mb-3" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
               Nudge
             </p>
-            <p className="text-sm text-text-secondary italic leading-relaxed">{brief.nudge}</p>
+            <div className="border-l-[3px] border-accent-soft pl-4 py-3">
+              <p className="text-sm text-text-secondary italic leading-relaxed">{brief.nudge}</p>
+            </div>
           </div>
         </div>
       )}
@@ -668,15 +682,15 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-[8px] border border-dashed border-border
-                     text-sm text-text-secondary hover:border-accent hover:text-accent
-                     transition-colors w-full justify-center group"
+          className="flex items-center justify-center gap-2 w-full px-4 py-3
+                     rounded-[12px] border border-dashed border-border
+                     text-[14px] text-text-tertiary hover:border-accent hover:text-accent
+                     transition-colors duration-150"
         >
-          <span className="text-lg leading-none group-hover:text-accent">+</span>
-          Capture something
+          + Capture something
         </button>
       ) : (
-        <div className="bg-surface border border-border rounded-[12px] p-4 flex flex-col gap-3">
+        <div className="bg-surface border border-border rounded-[16px] p-4 flex flex-col gap-3 shadow-sm">
           <textarea
             ref={textareaRef}
             value={content}
@@ -684,7 +698,7 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
             onKeyDown={handleKeyDown}
             placeholder="Paste text, a URL, or just a thought…"
             rows={3}
-            className="w-full text-sm text-text-primary placeholder:text-text-tertiary
+            className="w-full text-[15px] text-text-primary placeholder:text-text-tertiary
                        bg-transparent resize-none outline-none leading-relaxed"
           />
           <div className="h-px bg-divider" />
@@ -693,7 +707,7 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Source URL (optional)"
-            className="w-full text-xs font-mono text-text-secondary placeholder:text-text-tertiary
+            className="w-full text-[13px] font-mono text-text-secondary placeholder:text-text-tertiary
                        bg-transparent outline-none"
           />
           {imagePreview && (
@@ -710,26 +724,31 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
             </div>
           )}
           <div className="flex items-center justify-between gap-2 pt-1">
-            <div className="flex items-center gap-2">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs px-3 py-1.5 rounded-[8px] bg-surface-2 text-text-secondary
+                         hover:bg-surface-hover transition-colors duration-150"
+            >
+              {imageFile ? '✓ Image added' : '+ Image'}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+            <div className="flex items-center gap-3">
+              <span className="text-[12px] text-text-tertiary select-none">⌘↵ to save</span>
               <button
-                onClick={() => fileInputRef.current?.click()}
-                className="text-xs px-3 py-1.5 rounded-[8px] bg-surface-2 text-text-secondary hover:bg-border transition-colors"
+                onClick={handleCancel}
+                className="text-xs px-3 py-1.5 rounded-[8px] text-text-secondary
+                           hover:text-text-primary transition-colors duration-150"
               >
-                {imageFile ? '✓ Image added' : '+ Image'}
-              </button>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={handleCancel} className="text-xs px-3 py-1.5 rounded-[8px] text-text-secondary hover:text-text-primary">
                 Cancel
               </button>
               <button
                 onClick={() => void handleSave()}
                 disabled={isEmpty || saving}
-                className="text-xs px-4 py-1.5 rounded-[8px] bg-accent text-white font-medium
-                           hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                className="text-sm px-5 py-2 rounded-[8px] bg-accent text-white font-semibold
+                           hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed
+                           transition-colors duration-150"
               >
-                {saving ? 'Saving…' : 'Save  ⌘↵'}
+                {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
           </div>
@@ -876,35 +895,39 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-bg">
-      <div className="max-w-[720px] mx-auto px-6 py-10">
-
-        {/* Header */}
-        <header className="mb-10">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-baseline gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Wick</h1>
-              <span className="text-xs font-mono text-text-tertiary px-2 py-0.5 rounded-full border border-border">
-                AI structures. You write.
-              </span>
-            </div>
-            <nav className="flex items-center gap-1">
-              <Link
-                href="/"
-                className="text-xs font-mono px-3 py-1.5 rounded-[8px] bg-accent-soft
-                           text-accent font-medium"
-              >
-                Brief
-              </Link>
-              <Link
-                href="/portfolio"
-                className="text-xs font-mono px-3 py-1.5 rounded-[8px] text-text-secondary
-                           hover:text-text-primary transition-colors"
-              >
-                Portfolio
-              </Link>
-            </nav>
+      {/* Sticky header — full width */}
+      <header className="sticky top-0 z-50 w-full bg-surface border-b border-border">
+        <div className="max-w-[720px] mx-auto px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-text-primary tracking-tight" style={{ fontSize: '18px' }}>
+              Wick
+            </span>
+            <span
+              className="font-mono px-2.5 py-1 rounded-full bg-accent-soft text-accent"
+              style={{ fontSize: '11px' }}
+            >
+              AI structures. You write.
+            </span>
           </div>
-        </header>
+          <nav className="flex items-center gap-6">
+            <Link
+              href="/"
+              className="text-sm font-semibold text-accent border-b-2 border-accent pb-px"
+            >
+              Brief
+            </Link>
+            <Link
+              href="/portfolio"
+              className="text-sm font-medium text-text-secondary hover:text-text-primary border-b-2 border-transparent pb-px transition-colors duration-150"
+            >
+              Portfolio
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="max-w-[720px] mx-auto px-6 py-8">
 
         {/* Daily Brief — primary view */}
         {hydrated && (
@@ -934,15 +957,16 @@ export default function Home() {
           <>
             {/* Backfill button */}
             {idleUncategorized.length > 0 && (
-              <div className="mb-6 flex items-center justify-between py-2 px-3 rounded-[8px] bg-surface-2 border border-border">
+              <div className="mb-6 flex items-center justify-between py-2.5 px-4 rounded-[10px] bg-surface-2 border border-border">
                 <span className="text-xs text-text-secondary">
                   {idleUncategorized.length} capture{idleUncategorized.length !== 1 ? 's' : ''} without a label
                 </span>
                 <button
                   onClick={() => void backfillAll()}
                   disabled={backfilling}
-                  className="text-xs px-3 py-1.5 rounded-[6px] bg-accent text-white font-medium
-                             hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  className="text-xs px-3 py-1.5 rounded-[6px] bg-accent text-white font-semibold
+                             hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed
+                             transition-colors duration-150"
                 >
                   {backfilling ? 'Categorizing…' : 'Categorize all'}
                 </button>
@@ -953,10 +977,15 @@ export default function Home() {
             {uncategorized.length > 0 && (
               <section className="mb-8">
                 <div className="flex items-center gap-2 mb-3">
-                  <h2 className="text-xs font-mono text-text-tertiary uppercase tracking-widest">
+                  <p
+                    className="font-mono uppercase text-text-tertiary"
+                    style={{ fontSize: '11px', letterSpacing: '0.1em' }}
+                  >
                     Just captured
-                  </h2>
-                  <span className="text-xs font-mono text-text-tertiary">{uncategorized.length}</span>
+                  </p>
+                  <span className="font-mono text-text-tertiary" style={{ fontSize: '11px' }}>
+                    {uncategorized.length}
+                  </span>
                 </div>
                 <div className="flex flex-col gap-3">
                   {uncategorized.map((c) => (
