@@ -281,15 +281,24 @@ function CaptureCard({
       )}
 
       {capture.source_url && (
-        <a
-          href={capture.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-accent hover:underline text-sm truncate block max-w-full"
-          onClick={(e) => e.stopPropagation()}
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(capture.source_url, '_blank', 'noopener,noreferrer');
+          }}
+          style={{
+            color: '#2D5F4E',
+            textDecoration: 'underline',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            display: 'block',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
         >
           {capture.source_url}
-        </a>
+        </span>
       )}
     </article>
   );
