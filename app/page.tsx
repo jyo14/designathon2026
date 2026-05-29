@@ -848,7 +848,7 @@ function Sidebar({ view, setView }: { view: 'brief' | 'captures'; setView: (v: '
       {/* Logo */}
       <div className="px-5 pt-6 pb-5">
         <p className="font-semibold text-text-primary" style={{ fontSize: '18px' }}>Wick</p>
-        <p className="font-mono text-text-tertiary mt-1" style={{ fontSize: '11px' }}>AI structures. You write.</p>
+        <p className="font-mono text-text-tertiary mt-1" style={{ fontSize: '11px' }}>From consumption to connection</p>
       </div>
 
       {/* Nav */}
@@ -904,6 +904,32 @@ export default function Home() {
   const [backfilling, setBackfilling] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [view, setView] = useState<'brief' | 'captures'>('captures');
+  const [importBanner, setImportBanner] = useState<string | null>(null);
+
+  // Handle ?import= from browser extension
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const importParam = params.get('import');
+    if (!importParam) return;
+
+    window.history.replaceState({}, '', '/');
+
+    const urls = importParam.split('|').filter(Boolean);
+    if (urls.length === 0) return;
+
+    setImportBanner(`Importing ${urls.length} tab${urls.length !== 1 ? 's' : ''} from your browser…`);
+
+    (async () => {
+      for (const url of urls) {
+        const saved = addCapture({ type: 'url', content: '', source_url: url });
+        refresh();
+        void categorize(saved);
+        await delay(200);
+      }
+      setTimeout(() => setImportBanner(null), 3000);
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     getCaptures().forEach((c) => {
@@ -1032,6 +1058,16 @@ export default function Home() {
                 </h1>
                 <p className="text-text-secondary mt-1 text-sm">Here&apos;s everything you&apos;ve been saving.</p>
               </div>
+
+              {importBanner && (
+                <div
+                  className="mb-4 rounded-[10px] px-4 py-3 text-sm font-medium flex items-center gap-2"
+                  style={{ background: '#E3EDE9', color: '#1B4D3E' }}
+                >
+                  <span className="inline-block w-3 h-3 border-2 border-[#1B4D3E]/30 border-t-[#1B4D3E] rounded-full animate-spin flex-shrink-0" />
+                  {importBanner}
+                </div>
+              )}
 
               <CaptureForm onSave={handleSave} />
 

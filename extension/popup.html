@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wick</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 360px;
+      background: #F8F7F4;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #141413;
+      padding: 16px;
+    }
+
+    .header {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .wordmark {
+      font-size: 18px;
+      font-weight: 600;
+      color: #141413;
+    }
+
+    .badge {
+      font-size: 10px;
+      font-family: ui-monospace, monospace;
+      background: #E3EDE9;
+      color: #1B4D3E;
+      padding: 2px 8px;
+      border-radius: 9999px;
+    }
+
+    .count {
+      font-size: 13px;
+      color: #5C5B55;
+      margin-bottom: 12px;
+      font-family: ui-monospace, monospace;
+    }
+
+    .import-btn {
+      display: block;
+      width: 100%;
+      background: #1B4D3E;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 150ms ease;
+      text-align: center;
+    }
+
+    .import-btn:hover {
+      background: #163D31;
+    }
+
+    .import-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .progress {
+      font-size: 12px;
+      color: #9C9B95;
+      text-align: center;
+      margin-top: 8px;
+      min-height: 16px;
+      font-family: ui-monospace, monospace;
+    }
+
+    .divider {
+      height: 1px;
+      background: #E8E7E3;
+      margin: 12px 0;
+    }
+
+    .open-btn {
+      display: block;
+      width: 100%;
+      background: transparent;
+      color: #5C5B55;
+      border: 1px solid #E8E7E3;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 150ms ease, color 150ms ease;
+      text-align: center;
+    }
+
+    .open-btn:hover {
+      background: #ECEAE5;
+      color: #141413;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="wordmark">Wick</span>
+    <span class="badge">AI structures. You write.</span>
+  </div>
+
+  <p id="count" class="count">Counting tabs…</p>
+
+  <button id="import-btn" class="import-btn" disabled>
+    Import tabs to Wick
+  </button>
+  <p id="progress" class="progress"></p>
+
+  <div class="divider"></div>
+
+  <button id="open-btn" class="open-btn">Open Wick</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

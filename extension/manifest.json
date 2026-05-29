@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Wick",
+  "description": "Send your open tabs to Wick automatically",
+  "version": "1.0",
+  "permissions": ["tabs"],
+  "host_permissions": [
+    "https://wick-delta.vercel.app/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

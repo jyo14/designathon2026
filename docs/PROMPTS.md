@@ -247,6 +247,17 @@ No markdown fences, no prose outside the JSON.
 
 ---
 
+---
+
+## Browser extension (non-prompt, for record)
+
+**Built:** Manifest V3 Chrome extension at `/extension/`.
+**How it works:** `chrome.tabs API` reads all open tabs, filters chrome:// and internal URLs, encodes valid URLs pipe-separated into `?import=<encoded>` query param, opens `https://wick-delta.vercel.app?import=...`.
+**Client-side handler (page.tsx):** On mount, reads `window.location.search` for `?import=`, splits by `|`, calls `addCapture({ type: 'url', source_url })` for each URL, triggers `categorize()` async, shows a dismissing banner "Importing N tabs…", clears the param via `history.replaceState`.
+**No server-side storage needed** — pure localStorage prototype, extension just passes URLs as URL params.
+
+---
+
 ## Failed/abandoned prompt versions
 ### Prompt 3 — Portfolio gap, v1 → v2
 
