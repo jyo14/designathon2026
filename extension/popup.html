@@ -45,7 +45,10 @@
     }
 
     .import-btn {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       width: 100%;
       background: #1B4D3E;
       color: #FFFFFF;
@@ -60,13 +63,31 @@
       text-align: center;
     }
 
-    .import-btn:hover {
+    .import-btn:hover:not(:disabled) {
       background: #163D31;
     }
 
     .import-btn:disabled {
-      opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    .import-btn.success {
+      background: #163D31;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #FFFFFF;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     .progress {

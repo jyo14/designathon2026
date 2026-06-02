@@ -174,3 +174,29 @@ Also appears: at bottom of each missing case study card in portfolio gap results
 ## Scrollbar
 
 Thin (6px). Track: surface-2. Thumb: text-tertiary, 3px radius.
+
+## Import summary banner
+
+Shown after browser-extension tab import completes. Sits above capture form, below welcome header.
+
+Full-width card: bg accent-soft (#E3EDE9), border 1px solid accent (#1B4D3E), 12px radius, px-5 py-4.
+Left: "✓ N tabs imported" (14px 600, accent color) + label breakdown line (12px, text-secondary) — "4 Study Material · 3 UI Pattern".
+Right: "Review imports" button (accent bg, white text, 6px radius) + ✕ dismiss icon.
+Auto-dismisses after 8 seconds.
+
+## Undo toast
+
+Fixed bottom-center overlay. Appears immediately after import completes. 5-second window.
+
+Dark card (#141413), 10px radius, px-4 py-3, min-width 240px, shadow-md.
+Left: "N tabs imported" (14px white). Right: "Undo" (14px 600, green #4ade80) + ✕ dismiss.
+Progress bar below: 2px height, accent bg (#1B4D3E), left-origin scaleX animation over 5s, track rgba(255,255,255,0.12).
+CSS animation: `@keyframes toast-progress { from { transform: scaleX(1) } to { transform: scaleX(0) } }`.
+
+## Review panel
+
+Right-side column (320px), appears in flex layout alongside Sidebar + main canvas. Not a modal.
+
+bg-surface, border-l border-border, h-screen, flex-col.
+Sticky header (px-5 pt-5 pb-4, border-b): "Just imported" (14px 600) + "N tabs — adjust labels" (12px text-tertiary) + "Done" button (accent, right).
+Scrollable list: each row is 8px radius hover:bg-surface-2. Shows URL/summary (truncated, 12px text-secondary) + label chip + ✎ edit icon (visible on row hover). Dropdown same pattern as board-card label editor.

@@ -675,7 +675,6 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
 
   function handleContentChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const val = e.target.value;
-    // If the whole input is just a URL and the URL field is empty, auto-route it
     if (!url.trim() && /^https?:\/\/[^\s]+$/.test(val.trim())) {
       setUrl(val.trim());
       setContent('');
@@ -691,7 +690,6 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
     let finalContent = content.trim();
     let finalUrl = url.trim();
 
-    // Extract URL from content if the URL field wasn't set manually
     if (!finalUrl) {
       const extracted = extractUrl(finalContent);
       if (extracted) {
@@ -822,6 +820,244 @@ function CaptureForm({ onSave }: { onSave: (c: Capture) => void }) {
   );
 }
 
+// ─── Import summary banner ────────────────────────────────────────────────────
+
+function ImportSummaryBanner({
+  count,
+  byLabel,
+  onReview,
+  onDismiss,
+}: {
+  count: number;
+  byLabel: Partial<Record<CaptureLabel, number>>;
+  onReview: () => void;
+  onDismiss: () => void;
+}) {
+  const breakdown = (Object.entries(byLabel) as [CaptureLabel, number][])
+    .sort(([, a], [, b]) => b - a)
+    .map(([label, n]) => `${n} ${label}`)
+    .join(' · ');
+
+  return (
+    <div
+      className="mb-6 rounded-[12px] px-5 py-4"
+      style={{ background: '#E3EDE9', border: '1px solid #1B4D3E' }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-semibold" style={{ color: '#1B4D3E' }}>
+            ✓ {count} tab{count !== 1 ? 's' : ''} imported
+          </p>
+          {breakdown && (
+            <p className="text-xs leading-relaxed" style={{ color: '#5C5B55' }}>{breakdown}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={onReview}
+            className="text-xs px-3 py-1.5 rounded-[6px] font-medium transition-colors hover:opacity-90"
+            style={{ background: '#1B4D3E', color: '#FFFFFF' }}
+          >
+            Review imports
+          </button>
+          <button
+            onClick={onDismiss}
+            className="text-xs text-text-tertiary hover:text-text-primary transition-colors w-5 h-5
+                       flex items-center justify-center"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Undo toast ───────────────────────────────────────────────────────────────
+
+function UndoToast({
+  count,
+  onUndo,
+  onDismiss,
+}: {
+  count: number;
+  onUndo: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-[10px] px-4 py-3 shadow-md"
+      style={{ background: '#141413', minWidth: '240px', maxWidth: '320px' }}
+    >
+      <div className="flex items-center justify-between gap-6">
+        <span className="text-sm text-white">
+          {count} tab{count !== 1 ? 's' : ''} imported
+        </span>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <button
+            onClick={onUndo}
+            className="text-sm font-semibold transition-opacity hover:opacity-75"
+            style={{ color: '#4ade80' }}
+          >
+            Undo
+          </button>
+          <button
+            onClick={onDismiss}
+            className="text-xs transition-opacity hover:opacity-75"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      {/* 5-second countdown bar */}
+      <div className="mt-2.5 h-0.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.12)' }}>
+        <div
+          className="h-full rounded-full"
+          style={{
+            background: '#1B4D3E',
+            transformOrigin: 'left',
+            animation: 'toast-progress 5s linear forwards',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Review panel ─────────────────────────────────────────────────────────────
+
+function ReviewRow({
+  capture,
+  catState,
+  onLabelChange,
+}: {
+  capture: Capture;
+  catState?: CatState;
+  onLabelChange: (id: string, newLabel: CaptureLabel) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const displayText = (() => {
+    if (capture.summary) {
+      return capture.summary.length > 54 ? capture.summary.slice(0, 54) + '…' : capture.summary;
+    }
+    if (capture.source_url) {
+      const u = capture.source_url;
+      return u.length > 54 ? '…' + u.slice(-51) : u;
+    }
+    return '(capture)';
+  })();
+
+  return (
+    <div className="flex items-start justify-between gap-2 px-3 py-2.5 rounded-[8px] hover:bg-surface-2 transition-colors group">
+      <p className="text-xs text-text-secondary leading-relaxed flex-1 min-w-0 pt-0.5 break-all line-clamp-2">
+        {displayText}
+      </p>
+      <div className="flex items-center gap-1 flex-shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
+        {catState === 'pending' ? (
+          <span className="inline-block w-3 h-3 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+        ) : capture.label ? (
+          <div className="relative">
+            <button
+              className="flex items-center gap-1"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <LabelChip label={capture.label} />
+              <span className="text-[10px] text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">
+                ✎
+              </span>
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                <div className="absolute top-full right-0 mt-1 z-20 bg-surface border border-border
+                                rounded-[10px] shadow-md py-1 min-w-[180px]">
+                  {ALL_LABELS.map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => { onLabelChange(capture.id, l); setMenuOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-2
+                                  flex items-center gap-2 transition-colors
+                                  ${l === capture.label ? 'text-accent font-medium' : 'text-text-primary'}`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: LABEL_STYLES[l].dot }} />
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : catState === 'error' ? (
+          <span className="text-xs font-medium" style={{ color: '#b45309' }}>Error</span>
+        ) : (
+          <span className="text-xs font-mono text-text-tertiary">—</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReviewPanel({
+  importedIds,
+  captures,
+  catStates,
+  onLabelChange,
+  onDone,
+}: {
+  importedIds: string[];
+  captures: Capture[];
+  catStates: Record<string, CatState>;
+  onLabelChange: (id: string, newLabel: CaptureLabel) => void;
+  onDone: () => void;
+}) {
+  const importedCaptures = importedIds
+    .map((id) => captures.find((c) => c.id === id))
+    .filter((c): c is Capture => !!c);
+
+  return (
+    <aside className="w-80 flex-shrink-0 bg-surface border-l border-border flex flex-col h-screen">
+      {/* Header */}
+      <div className="px-5 pt-5 pb-4 border-b border-border flex items-center justify-between flex-shrink-0">
+        <div>
+          <p className="font-semibold text-text-primary" style={{ fontSize: '14px' }}>Just imported</p>
+          <p className="text-text-tertiary mt-0.5" style={{ fontSize: '12px' }}>
+            {importedIds.length} tab{importedIds.length !== 1 ? 's' : ''} — adjust labels
+          </p>
+        </div>
+        <button
+          onClick={onDone}
+          className="text-xs px-3 py-1.5 rounded-[6px] font-medium transition-colors hover:opacity-90"
+          style={{ background: '#1B4D3E', color: '#FFFFFF' }}
+        >
+          Done
+        </button>
+      </div>
+
+      {/* List */}
+      <div className="flex-1 overflow-y-auto py-2">
+        {importedCaptures.length > 0 ? (
+          importedCaptures.map((c) => (
+            <ReviewRow
+              key={c.id}
+              capture={c}
+              catState={catStates[c.id]}
+              onLabelChange={onLabelChange}
+            />
+          ))
+        ) : (
+          <p className="text-xs text-text-tertiary text-center py-8 px-4">
+            No captures found.
+          </p>
+        )}
+      </div>
+    </aside>
+  );
+}
+
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 function Sidebar({ view, setView }: { view: 'brief' | 'captures'; setView: (v: 'brief' | 'captures') => void }) {
@@ -904,7 +1140,19 @@ export default function Home() {
   const [backfilling, setBackfilling] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [view, setView] = useState<'brief' | 'captures'>('captures');
-  const [importBanner, setImportBanner] = useState<string | null>(null);
+
+  // Import flow state
+  const [importedIds, setImportedIds] = useState<string[]>([]);
+  const [importStage, setImportStage] = useState<'idle' | 'importing' | 'done'>('idle');
+  const [importSummary, setImportSummary] = useState<{
+    count: number;
+    ids: string[];
+    byLabel: Partial<Record<CaptureLabel, number>>;
+  } | null>(null);
+  const [undoToast, setUndoToast] = useState<{ count: number; ids: string[] } | null>(null);
+  const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const summaryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Handle ?import= from browser extension
   useEffect(() => {
@@ -917,19 +1165,45 @@ export default function Home() {
     const urls = importParam.split('|').filter(Boolean);
     if (urls.length === 0) return;
 
-    setImportBanner(`Importing ${urls.length} tab${urls.length !== 1 ? 's' : ''} from your browser…`);
+    setImportStage('importing');
 
     (async () => {
+      const savedIds: string[] = [];
       for (const url of urls) {
         const saved = addCapture({ type: 'url', content: '', source_url: url });
+        savedIds.push(saved.id);
         refresh();
         void categorize(saved);
         await delay(200);
       }
-      setTimeout(() => setImportBanner(null), 3000);
+      setImportedIds(savedIds);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Detect when all imported captures have finished categorizing
+  useEffect(() => {
+    if (importStage !== 'importing' || importedIds.length === 0) return;
+
+    const allDone = importedIds.every((id) => catStates[id] !== 'pending');
+    if (!allDone) return;
+
+    const byLabel: Partial<Record<CaptureLabel, number>> = {};
+    for (const id of importedIds) {
+      const cap = captures.find((c) => c.id === id);
+      if (cap?.label) byLabel[cap.label] = (byLabel[cap.label] ?? 0) + 1;
+    }
+
+    setImportSummary({ count: importedIds.length, ids: importedIds, byLabel });
+    setImportStage('done');
+
+    if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current);
+    summaryTimerRef.current = setTimeout(() => setImportSummary(null), 8000);
+
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoToast({ count: importedIds.length, ids: importedIds });
+    undoTimerRef.current = setTimeout(() => setUndoToast(null), 5000);
+  }, [catStates, importedIds, importStage, captures]);
 
   useEffect(() => {
     getCaptures().forEach((c) => {
@@ -996,6 +1270,22 @@ export default function Home() {
   function handleMarkOpened(id: string) { updateCapture(id, { is_opened: true }); refresh(); }
   function handleLabelChange(id: string, newLabel: CaptureLabel) { updateCapture(id, { label: newLabel }); refresh(); }
 
+  function handleUndo() {
+    if (!undoToast) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current);
+    for (const id of undoToast.ids) {
+      deleteCapture(id);
+      setCatStates((prev) => { const next = { ...prev }; delete next[id]; return next; });
+    }
+    setUndoToast(null);
+    setImportSummary(null);
+    setImportedIds([]);
+    setImportStage('idle');
+    setReviewPanelOpen(false);
+    refresh();
+  }
+
   function handleCaptureLinkClick(id: string) {
     handleMarkOpened(id);
     setHighlightedId(id);
@@ -1059,14 +1349,28 @@ export default function Home() {
                 <p className="text-text-secondary mt-1 text-sm">Here&apos;s everything you&apos;ve been saving.</p>
               </div>
 
-              {importBanner && (
+              {/* Spinner while import is in progress */}
+              {importStage === 'importing' && (
                 <div
                   className="mb-4 rounded-[10px] px-4 py-3 text-sm font-medium flex items-center gap-2"
                   style={{ background: '#E3EDE9', color: '#1B4D3E' }}
                 >
                   <span className="inline-block w-3 h-3 border-2 border-[#1B4D3E]/30 border-t-[#1B4D3E] rounded-full animate-spin flex-shrink-0" />
-                  {importBanner}
+                  Importing tabs from your browser…
                 </div>
+              )}
+
+              {/* Summary banner after import completes */}
+              {importSummary && (
+                <ImportSummaryBanner
+                  count={importSummary.count}
+                  byLabel={importSummary.byLabel}
+                  onReview={() => setReviewPanelOpen(true)}
+                  onDismiss={() => {
+                    if (summaryTimerRef.current) clearTimeout(summaryTimerRef.current);
+                    setImportSummary(null);
+                  }}
+                />
               )}
 
               <CaptureForm onSave={handleSave} />
@@ -1149,6 +1453,29 @@ export default function Home() {
 
         </div>
       </main>
+
+      {/* Review panel — slides in as right column */}
+      {reviewPanelOpen && (
+        <ReviewPanel
+          importedIds={importedIds}
+          captures={captures}
+          catStates={catStates}
+          onLabelChange={handleLabelChange}
+          onDone={() => setReviewPanelOpen(false)}
+        />
+      )}
+
+      {/* Undo toast — fixed bottom-center */}
+      {undoToast && (
+        <UndoToast
+          count={undoToast.count}
+          onUndo={handleUndo}
+          onDismiss={() => {
+            if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+            setUndoToast(null);
+          }}
+        />
+      )}
     </div>
   );
 }
