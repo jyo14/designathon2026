@@ -217,13 +217,66 @@ function CaptureCard({
                   ${highlighted ? 'ring-2 ring-accent ring-offset-1' : ''}`}
       onClick={handleCardClick}
     >
-      {/* Row 1: label chip (left) + controls (right) */}
+      {/* Row 1: interactive label chip (left) + domain badge / pencil / delete (right) */}
       <div className="flex items-center justify-between gap-2">
-        <div>
-          {showLabel && capture.label && <LabelChip label={capture.label} />}
+        {/* Label chip — clicking it opens the label dropdown */}
+        <div onClick={(e) => e.stopPropagation()}>
+          {showLabel && capture.label && (
+            onLabelChange && !editing ? (
+              <div className="relative">
+                <button
+                  onClick={() => setLabelMenuOpen((v) => !v)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium
+                             transition-opacity hover:opacity-75 cursor-pointer"
+                  style={{
+                    background: LABEL_STYLES[capture.label].bg,
+                    color: LABEL_STYLES[capture.label].color,
+                    fontSize: '11px',
+                  }}
+                  aria-label="Change label"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: LABEL_STYLES[capture.label].dot }} />
+                  {capture.label}
+                  <span style={{ fontSize: '10px', opacity: 0.55, marginLeft: '1px' }}>▾</span>
+                </button>
+                {labelMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setLabelMenuOpen(false)} />
+                    <div className="absolute top-full left-0 mt-1 z-20 bg-surface border border-border
+                                    rounded-[10px] shadow-md py-1 min-w-[200px]">
+                      {ALL_LABELS.map((l) => (
+                        <button
+                          key={l}
+                          onClick={() => {
+                            onLabelChange!(capture.id, l);
+                            setLabelMenuOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-2
+                                      flex items-center gap-2 transition-colors
+                                      ${l === capture.label ? 'text-accent font-medium' : 'text-text-primary'}`}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: LABEL_STYLES[l].dot }} />
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <LabelChip label={capture.label} />
+            )
+          )}
         </div>
+
+        {/* Right controls: domain badge + content pencil + delete */}
         <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-          {/* Content edit button */}
+          <span
+            className="font-mono flex-shrink-0"
+            style={{ background: '#F2F1ED', color: '#5C5B55', fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}
+          >
+            {typeBadge.icon} {typeBadge.label}
+          </span>
           {onSaveContent && !editing && (
             <button
               onClick={startEdit}
@@ -236,48 +289,6 @@ function CaptureCard({
               </svg>
             </button>
           )}
-          {/* Label change button */}
-          {onLabelChange && capture.label && !editing && (
-            <div className="relative">
-              <button
-                onClick={() => setLabelMenuOpen((v) => !v)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity
-                           text-text-tertiary hover:text-text-primary text-xs leading-none px-0.5"
-                aria-label="Change label"
-              >
-                ✎
-              </button>
-              {labelMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setLabelMenuOpen(false)} />
-                  <div className="absolute top-full right-0 mt-1 z-20 bg-surface border border-border
-                                  rounded-[10px] shadow-md py-1 min-w-[200px]">
-                    {ALL_LABELS.map((l) => (
-                      <button
-                        key={l}
-                        onClick={() => {
-                          onLabelChange!(capture.id, l);
-                          setLabelMenuOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-1.5 text-xs hover:bg-surface-2
-                                    flex items-center gap-2 transition-colors
-                                    ${l === capture.label ? 'text-accent font-medium' : 'text-text-primary'}`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: LABEL_STYLES[l].dot }} />
-                        {l}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          <span
-            className="font-mono flex-shrink-0"
-            style={{ background: '#F2F1ED', color: '#5C5B55', fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}
-          >
-            {typeBadge.icon} {typeBadge.label}
-          </span>
           {!editing && (
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {isError && onRetry && (
