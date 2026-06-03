@@ -1,4 +1,4 @@
-import type { Capture, DailyBrief, PortfolioGapResult } from './types';
+import type { Capture, DailyBrief } from './types';
 
 const KEY = 'wick_captures';
 
@@ -77,35 +77,3 @@ export function getLatestBrief(): DailyBrief | null {
   }
 }
 
-const PORTFOLIO_TITLES_KEY = 'wick_portfolio_titles';
-const PORTFOLIO_GAP_KEY = 'wick_portfolio_gap';
-
-export function savePortfolioTitles(titles: string[]): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(PORTFOLIO_TITLES_KEY, JSON.stringify(titles));
-}
-
-export function getPortfolioTitles(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(PORTFOLIO_TITLES_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function savePortfolioGap(result: PortfolioGapResult): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(PORTFOLIO_GAP_KEY, JSON.stringify(result));
-}
-
-export function getPortfolioGap(): PortfolioGapResult | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(PORTFOLIO_GAP_KEY);
-    return raw ? (JSON.parse(raw) as PortfolioGapResult) : null;
-  } catch {
-    return null;
-  }
-}

@@ -150,13 +150,28 @@ Top 3 cards: 3-column grid (sm+), 1-col mobile. Each: white surface, border, 12p
 
 Connection cards: full width, white surface, border (left border overridden to 3px solid #E3EDE9 / accent-soft). Text: 14px 500 #141413. Capture chips joined by ↔ separator (11px mono text-tertiary).
 
-## Portfolio page
+## Resources page (formerly Portfolio)
 
-Same header, sticky. Section label + large date-style heading pattern. Textarea: 15px, 16px radius, white bg. Save button: primary style.
+Route: /portfolio. Sidebar label: "Resources". Search icon in sidebar: circle + diagonal line (magnifier).
 
-Portfolio title chips: pill, border, surface bg, text-primary.
+Header: "Find Resources" (32px 600) with "Resources" mono label above. Subtitle: 14px text-secondary.
 
-Gap results: white card, 12px radius, 20px padding. Case study title: 18px 600. Evidence: 13px text-secondary. Structure header: 10px mono uppercase. Section rows: surface-2 bg, 8px radius, 12px/16px padding.
+Search input: 16px, full-width, border-border, 12px radius, px-4 py-3. Accent border on focus. "Search" button: accent green, 12px radius, px-6 py-3, semibold. Below input: "or" (text-tertiary) + "Search from my captures" link (accent, hover underline).
+
+Loading: same spinner pattern as Brief, animate-pulse, "Searching the web for '[query]'…"
+
+Results header: semibold 16px + mono count (12px text-tertiary).
+
+Resource card: bg-surface, border-border, 12px radius, p-4, hover:shadow-sm, flex-col gap-2.5.
+- Domain: 11px mono text-tertiary (top-left)
+- Score %: 10px mono text-tertiary (top-right, if > 0)  
+- Title: 15px 600 text-primary, links to URL (hover: accent)
+- Snippet: 13px text-secondary, line-clamp-3
+- why_relevant: 12px italic accent color (#1B4D3E)
+- "Save to Wick" button: accent bg white text → after save: accent-soft bg accent text "✓ Saved to Wick"
+
+No-results: dashed border empty state, 12px padding.
+Not-configured error: centered card with "Search is not configured." + API key guidance.
 
 ## "AI structures. You write." — placement
 

@@ -1263,11 +1263,10 @@ function Sidebar({ view, setView }: { view: 'brief' | 'captures'; setView: (v: '
                      transition-colors duration-150"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-            <path d="M2 6l6-3.5L14 6l-6 3.5L2 6z" fill="currentColor" />
-            <path d="M2 9.5l6 3.5 6-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M2 12l6 3.5 6-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            <circle cx="6.5" cy="6.5" r="4" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M10 10l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
-          Portfolio
+          Resources
         </Link>
       </nav>
 

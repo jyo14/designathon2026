@@ -41,41 +41,11 @@ export interface DailyBrief {
   context_line?: string;
 }
 
-export interface SkeletonSection {
-  name: string;
-  mapped_captures: string[];
-  gap_suggestion: string | null;
-}
-
-export interface CaseStudySkeleton {
-  sections: SkeletonSection[];
-}
-
-export interface ResourceSuggestion {
-  type: string;
-  search_query: string;
-  why_it_helps: string;
-}
-
-export interface MissingCaseStudy {
-  theme: string;
-  evidence: string;
-  relevant_capture_ids: string[];
-  suggested_title: string;
-  skeleton: CaseStudySkeleton;
-  why_now?: string;
-  skill_signal?: string;
-  effort_estimate?: 'Low' | 'Medium' | 'High';
-}
-
-export interface StaleCaseStudy {
-  portfolio_title: string;
-  staleness_reason: string;
-  relevant_capture_ids: string[];
-}
-
-export interface PortfolioGapResult {
-  generated_at: string;
-  missing_case_studies: MissingCaseStudy[];
-  stale_case_studies: StaleCaseStudy[];
+export interface SearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  domain: string;
+  why_relevant: string;
+  score: number;
 }
