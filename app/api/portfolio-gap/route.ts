@@ -31,6 +31,11 @@ Rules:
 - Only reference capture IDs that appear in the data. Never invent IDs.
 - You are a librarian and analyst. Structure only. No prose generation.
 
+For each missing case study include these three additional fields:
+- why_now: one sentence on why this is the RIGHT moment to write this case study, referencing what specific recent captures or events make it timely.
+- skill_signal: one sentence on what writing this case study would demonstrate to a recruiter or hiring manager (be specific — a skill, a domain, a methodology).
+- effort_estimate: "Low" if 6 or more relevant captures exist, "Medium" if 3–5, "High" if exactly 3.
+
 Evidence threshold — apply strictly:
 - Only suggest a missing case study if there are AT LEAST 3 captures pointing at the same theme or project.
 - A single capture with a project_hint is NOT enough evidence on its own — ignore it.
@@ -45,7 +50,18 @@ Portfolio title matching:
 
 Return ONLY a valid JSON object with this exact shape:
 {
-  "missing_case_studies": [...],
+  "missing_case_studies": [
+    {
+      "theme": "...",
+      "evidence": "one sentence",
+      "relevant_capture_ids": ["id1"],
+      "suggested_title": "...",
+      "why_now": "...",
+      "skill_signal": "...",
+      "effort_estimate": "Low|Medium|High",
+      "skeleton": { "sections": [...] }
+    }
+  ],
   "stale_case_studies": [...]
 }
 No markdown fences, no prose outside the JSON.`;

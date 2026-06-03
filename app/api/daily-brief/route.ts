@@ -32,8 +32,8 @@ Produce a daily brief with exactly three parts:
 
    Prioritize: captures relevant to active projects, stalled captures connected to ongoing work, research threads that illuminate a current problem.
 
-2 CONNECTIONS:
-Find non-obvious connections — patterns NOT already visible from the boards.
+2. connections — non-obvious connections between captures:
+Find patterns NOT already visible from the boards.
 
 REJECT (do not return as connections):
 - "Both captures are in the same category" (boards already show this)
@@ -47,24 +47,38 @@ SEEK (these are real connections):
 - Tension or contradiction: a saved opinion that contradicts a saved decision
 - Gap recognition: saved material that suggests a missing case study or research thread
 
-For each connection, output:
-- An insight in ONE sentence (name what the connection REVEALS — not what the captures are about)
-- The 2-3 capture IDs being connected
+For each connection return:
+- "description": the insight in ONE sentence naming what the connection REVEALS (not what the captures are about)
+- "capture_ids": array of 2–3 IDs being connected
 
-If you cannot find a non-obvious connection, return fewer than 2. Quality > quantity.
+If you cannot find a non-obvious connection, return an empty array. Quality > quantity.
 
 3. nudge — exactly 1 sentence:
    Something quiet and pointed, not motivational. Reference actual content.
    Good: "You saved 4 articles on voice UX this week and opened none of them."
    Bad: "Keep up the great work!" or "You're making progress!"
 
+4. context_line — one sentence summarizing what the designer has been focused on this week.
+   Use "you" and "your". Be specific — name actual themes or projects.
+   Example: "You've been deep in AI design thinking this week."
+
+VOICE — apply to all text fields:
+Write as if speaking directly to the designer. Use "you" and "your" throughout. Reference specific project names, specific capture titles, and specific dates where possible. Do not be generic. If you cannot be specific, do not include the item. The brief should feel like a message from a thoughtful colleague who has read everything you've saved — not a system notification.
+
 Rules:
 - Only reference capture IDs that appear in the data above. Never invent IDs.
 - Be specific — name actual themes, content, or projects from the data
-- If data is sparse, work with what exists — still return exactly top_3 (3 items), connections (2 items), nudge (1 sentence)
+- If data is sparse, work with what exists — still return exactly 3 top_3 items and a nudge
 - The brief surfaces structure only. Do not write case study content.
 
-Return valid JSON only. No markdown fences, no prose outside the JSON.`;
+Return valid JSON only, with this exact shape:
+{
+  "top_3": [{ "title": "...", "reasoning": "...", "capture_ids": ["id"] }],
+  "connections": [{ "description": "...", "capture_ids": ["id1", "id2"] }],
+  "nudge": "...",
+  "context_line": "..."
+}
+No markdown fences, no prose outside the JSON.`;
 
 function buildUserMessage(
   recentCaptures: Capture[],

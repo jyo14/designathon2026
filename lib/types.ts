@@ -38,6 +38,7 @@ export interface DailyBrief {
   top_3: DailyBriefItem[];
   connections: DailyBriefConnection[];
   nudge: string;
+  context_line?: string;
 }
 
 export interface SkeletonSection {
@@ -50,12 +51,21 @@ export interface CaseStudySkeleton {
   sections: SkeletonSection[];
 }
 
+export interface ResourceSuggestion {
+  type: string;
+  search_query: string;
+  why_it_helps: string;
+}
+
 export interface MissingCaseStudy {
   theme: string;
   evidence: string;
   relevant_capture_ids: string[];
   suggested_title: string;
   skeleton: CaseStudySkeleton;
+  why_now?: string;
+  skill_signal?: string;
+  effort_estimate?: 'Low' | 'Medium' | 'High';
 }
 
 export interface StaleCaseStudy {

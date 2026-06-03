@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import type { Capture, PortfolioGapResult } from '@/lib/types';
+import type { Capture, MissingCaseStudy, PortfolioGapResult, ResourceSuggestion } from '@/lib/types';
 import {
   getCaptures,
   getPortfolioTitles,
@@ -26,6 +26,25 @@ function formatTimestamp(iso: string): string {
   if (diffDays === 1) return 'yesterday';
   if (diffDays < 7) return `${diffDays}d ago`;
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// ─── Effort pill ──────────────────────────────────────────────────────────────
+
+function EffortPill({ estimate }: { estimate: 'Low' | 'Medium' | 'High' }) {
+  const styles: Record<string, { bg: string; color: string }> = {
+    Low:    { bg: '#D1FAE5', color: '#065F46' },
+    Medium: { bg: '#FEF3C7', color: '#92400E' },
+    High:   { bg: '#FEE2E2', color: '#991B1B' },
+  };
+  const s = styles[estimate] ?? styles.Medium;
+  return (
+    <span
+      className="text-xs px-2.5 py-0.5 rounded-full font-medium flex-shrink-0"
+      style={{ background: s.bg, color: s.color, fontSize: '11px' }}
+    >
+      {estimate} effort
+    </span>
+  );
 }
 
 // ─── Non-interactive capture reference chip ───────────────────────────────────
@@ -60,7 +79,7 @@ function Sidebar() {
       {/* Logo */}
       <div className="px-5 pt-6 pb-5">
         <p className="font-semibold text-text-primary" style={{ fontSize: '18px' }}>Wick</p>
-        <p className="font-mono text-text-tertiary mt-1" style={{ fontSize: '11px' }}>AI structures. You write.</p>
+        <p className="font-mono text-text-tertiary mt-1" style={{ fontSize: '11px' }}>From consumption to connection</p>
       </div>
 
       {/* Nav */}
@@ -124,6 +143,15 @@ export default function PortfolioPage() {
   const [analysisError, setAnalysisError] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
+  // URL extraction
+  const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState(false);
+
+  // References per missing case study index
+  const [references, setReferences] = useState<Record<number, ResourceSuggestion[]>>({});
+  const [fetchingRefs, setFetchingRefs] = useState<Set<number>>(new Set());
+
   useEffect(() => {
     const caps = getCaptures();
     const titles = getPortfolioTitles();
@@ -164,6 +192,52 @@ export default function PortfolioPage() {
     };
   }
 
+  async function extractFromUrl() {
+    if (!portfolioUrl.trim()) return;
+    setExtracting(true);
+    setExtractError(false);
+    try {
+      const res = await fetch('/api/extract-portfolio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: portfolioUrl.trim() }),
+      });
+      const data = (await res.json()) as { titles: string[] };
+      if (!data.titles || data.titles.length === 0) {
+        setExtractError(true);
+        return;
+      }
+      setTitleInput(data.titles.join('\n'));
+      savePortfolioTitles(data.titles);
+      setPortfolioTitles(data.titles);
+    } catch {
+      setExtractError(true);
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  async function fetchReferencesForIndex(mc: MissingCaseStudy, idx: number) {
+    setFetchingRefs((prev) => new Set(prev).add(idx));
+    try {
+      const res = await fetch('/api/find-references', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: mc.theme, suggested_title: mc.suggested_title }),
+      });
+      const data = (await res.json()) as { suggestions: ResourceSuggestion[] };
+      setReferences((prev) => ({ ...prev, [idx]: data.suggestions ?? [] }));
+    } catch {
+      // fail silently — references are a best-effort enhancement
+    } finally {
+      setFetchingRefs((prev) => {
+        const next = new Set(prev);
+        next.delete(idx);
+        return next;
+      });
+    }
+  }
+
   const hasEnough = captures.length >= 10;
   const canAnalyze = portfolioTitles.length > 0 && hasEnough;
 
@@ -171,6 +245,8 @@ export default function PortfolioPage() {
     if (!canAnalyze) return;
     setAnalyzing(true);
     setAnalysisError(false);
+    setReferences({});
+    setFetchingRefs(new Set());
     try {
       const payload = captures.map((c) => ({
         id: c.id,
@@ -193,7 +269,15 @@ export default function PortfolioPage() {
       const data = (await res.json()) as PortfolioGapResult | null;
       if (!data) throw new Error('null response');
       savePortfolioGap(data);
-      setGap(normalizeGap(data));
+      const normalized = normalizeGap(data);
+      setGap(normalized);
+
+      // Kick off reference fetches for sparse cards
+      normalized.missing_case_studies.forEach((mc, i) => {
+        if ((mc.relevant_capture_ids ?? []).length < 3) {
+          void fetchReferencesForIndex(mc, i);
+        }
+      });
     } catch {
       setAnalysisError(true);
     } finally {
@@ -216,9 +300,37 @@ export default function PortfolioPage() {
             <h2 className="font-semibold text-text-primary mb-1" style={{ fontSize: '32px', lineHeight: 1.15 }}>
               What have you built?
             </h2>
-            <p className="text-sm text-text-secondary mb-4 leading-relaxed">
+            <p className="text-sm text-text-secondary mb-5 leading-relaxed">
               List your existing case studies — one per line. Wick will find what&apos;s missing.
             </p>
+
+            {/* URL extraction */}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="url"
+                value={portfolioUrl}
+                onChange={(e) => { setPortfolioUrl(e.target.value); setExtractError(false); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') void extractFromUrl(); }}
+                placeholder="Paste your portfolio URL to auto-extract case studies"
+                className="flex-1 text-[13px] font-mono text-text-primary placeholder:text-text-tertiary
+                           bg-surface border border-border rounded-[8px] px-3 py-2 outline-none
+                           focus:border-accent transition-colors duration-150"
+              />
+              <button
+                onClick={() => void extractFromUrl()}
+                disabled={!portfolioUrl.trim() || extracting}
+                className="text-sm px-4 py-2 rounded-[8px] bg-surface-2 text-text-secondary font-medium
+                           hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed
+                           transition-colors duration-150 flex-shrink-0 whitespace-nowrap"
+              >
+                {extracting ? 'Reading…' : 'Extract case studies'}
+              </button>
+            </div>
+            {extractError && (
+              <p className="text-xs mb-3 leading-relaxed" style={{ color: '#b45309' }}>
+                Couldn&apos;t read that URL — add titles manually below.
+              </p>
+            )}
 
             <textarea
               value={titleInput}
@@ -355,13 +467,32 @@ export default function PortfolioPage() {
                         key={i}
                         className="rounded-[12px] border border-border bg-surface p-5 flex flex-col gap-4"
                       >
+                        {/* Header: title + effort pill */}
                         <div>
-                          <h3 className="font-semibold text-text-primary leading-snug" style={{ fontSize: '18px' }}>
-                            {mc.suggested_title}
-                          </h3>
-                          <p className="text-[13px] text-text-secondary mt-2 leading-relaxed">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <h3 className="font-semibold text-text-primary leading-snug" style={{ fontSize: '18px' }}>
+                              {mc.suggested_title}
+                            </h3>
+                            {mc.effort_estimate && <EffortPill estimate={mc.effort_estimate} />}
+                          </div>
+                          <p className="text-[13px] text-text-secondary leading-relaxed">
                             {mc.evidence}
                           </p>
+                          {mc.why_now && (
+                            <p className="text-[13px] text-text-secondary leading-relaxed mt-1.5 italic">
+                              {mc.why_now}
+                            </p>
+                          )}
+                          {mc.skill_signal && (
+                            <div className="mt-2.5">
+                              <span
+                                className="text-xs px-2 py-0.5 rounded-[4px] font-medium"
+                                style={{ background: '#E3EDE9', color: '#1B4D3E', fontSize: '11px' }}
+                              >
+                                Shows: {mc.skill_signal}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {(mc.relevant_capture_ids ?? []).length > 0 && (
@@ -372,6 +503,7 @@ export default function PortfolioPage() {
                           </div>
                         )}
 
+                        {/* Skeleton */}
                         <div className="flex flex-col gap-2">
                           <p
                             className="font-mono uppercase text-text-tertiary mb-1"
@@ -408,6 +540,52 @@ export default function PortfolioPage() {
                             </div>
                           ))}
                         </div>
+
+                        {/* References — shown for sparse cards */}
+                        {(mc.relevant_capture_ids ?? []).length < 3 && (
+                          <div className="border-t border-border pt-4 flex flex-col gap-2.5">
+                            <p
+                              className="font-mono uppercase text-text-tertiary"
+                              style={{ fontSize: '10px', letterSpacing: '0.1em' }}
+                            >
+                              Where to start looking
+                            </p>
+                            {fetchingRefs.has(i) ? (
+                              <div className="flex items-center gap-2 text-xs text-text-tertiary">
+                                <span className="inline-block w-3 h-3 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                                Finding resources…
+                              </div>
+                            ) : references[i] && references[i].length > 0 ? (
+                              <>
+                                <div className="flex flex-wrap gap-2">
+                                  {references[i].map((ref, ri) => (
+                                    <a
+                                      key={ri}
+                                      href={`https://www.google.com/search?q=${encodeURIComponent(ref.search_query)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={ref.why_it_helps}
+                                      className="flex items-start gap-1.5 text-xs px-3 py-2 rounded-[8px]
+                                                 bg-surface-2 border border-border text-text-secondary
+                                                 hover:border-accent hover:text-accent transition-colors"
+                                    >
+                                      <span
+                                        className="font-mono uppercase flex-shrink-0 mt-0.5"
+                                        style={{ fontSize: '9px', color: '#9C9B95' }}
+                                      >
+                                        {ref.type}
+                                      </span>
+                                      <span className="leading-snug">{ref.search_query}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                                <p className="text-xs text-text-tertiary italic">
+                                  Suggested starting points — Wick can&apos;t browse yet, but these searches will.
+                                </p>
+                              </>
+                            ) : null}
+                          </div>
+                        )}
 
                         <p className="font-mono text-accent" style={{ fontSize: '11px' }}>
                           AI structures. You write.
